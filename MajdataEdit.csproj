@@ -16,6 +16,12 @@
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     </PropertyGroup>
     <ItemGroup>
+      <Compile Remove="MajSimaiX\**" />
+      <EmbeddedResource Remove="MajSimaiX\**" />
+      <None Remove="MajSimaiX\**" />
+      <Page Remove="MajSimaiX\**" />
+    </ItemGroup>
+    <ItemGroup>
       <None Remove="Image\bg_dummy.jpg" />
       <None Remove="Image\outline_find_replace_white_24dp.png" />
       <None Remove="Image\outline_search_white_24dp.png" />
