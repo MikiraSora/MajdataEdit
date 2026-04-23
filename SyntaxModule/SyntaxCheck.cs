@@ -1,4 +1,5 @@
 ﻿
+using MajSimai;
 using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 
@@ -118,11 +119,11 @@ namespace MajdataEdit.SyntaxModule
 
             foreach (var note in noteList)
             {
-                var raw = note.notesContent;
+                var raw = note.RawContent;
                 var notes = raw.Split("/");
 
                 foreach (var _note in notes)
-                    NoteSyntaxCheck(_note,note.rawTextPositionX,note.rawTextPositionY);
+                    NoteSyntaxCheck(_note,note.RawTextPositionX,note.RawTextPositionY);
             }
 
         }

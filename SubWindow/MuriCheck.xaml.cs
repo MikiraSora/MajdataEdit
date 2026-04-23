@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using MajSimai;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -145,40 +146,40 @@ public partial class MuriCheck : Window
 
         foreach (var noteGroup in SimaiProcess.notelist)
         {
-            var baseTime = noteGroup.time;
-            var positionX = noteGroup.rawTextPositionX;
-            var positionY = noteGroup.rawTextPositionY;
+            var baseTime = noteGroup.Timing;
+            var positionX = noteGroup.RawTextPositionX;
+            var positionY = noteGroup.RawTextPositionY;
 
-            foreach (var note in noteGroup.getNotes())
-                if (note.noteType == SimaiNoteType.Tap)
+            foreach (var note in noteGroup.Notes)
+                if (note.Type == SimaiNoteType.Tap)
                 {
                     opSequence.Add(new MaimaiOperationMultNote(
                         Math.Round(baseTime, TIME_EPS),
                         Math.Round(baseTime, TIME_EPS),
-                        note.startPosition,
-                        note.startPosition,
+                        note.StartPosition,
+                        note.StartPosition,
                         0,
-                        note.noteContent!,
+                        note.RawContent!,
                         positionX,
                         positionY
                     ));
                 }
-                else if (note.noteType == SimaiNoteType.Slide)
+                else if (note.Type == SimaiNoteType.Slide)
                 {
                     opSequence.Add(new MaimaiOperationMultNote(
                         Math.Round(baseTime, TIME_EPS),
                         Math.Round(baseTime, TIME_EPS),
-                        note.startPosition,
-                        note.startPosition,
+                        note.StartPosition,
+                        note.StartPosition,
                         1,
-                        note.noteContent!,
+                        note.RawContent!,
                         positionX,
                         positionY
                     ));
                     int endPosition;
                     try
                     {
-                        var temp = Regex.Match(note.noteContent!, prog);
+                        var temp = Regex.Match(note.RawContent!, prog);
                         endPosition = int.Parse(
                             temp.Groups[3].Value.Substring(temp.Groups[3].Value.Length - 1, 1)
                         );
@@ -187,7 +188,7 @@ public partial class MuriCheck : Window
                     {
                         addWarning(string.Format(
                             MainWindow.GetLocalizedString("SyntaxError"),
-                            note.noteContent,
+                            note.RawContent,
                             positionY + 1,
                             positionX + 1
                         ), positionX, positionY);
@@ -195,25 +196,25 @@ public partial class MuriCheck : Window
                     }
 
                     opSequence.Add(new MaimaiOperationMultNote(
-                        Math.Round(note.slideStartTime, TIME_EPS),
-                        Math.Round(note.slideStartTime + note.slideTime, TIME_EPS),
-                        note.startPosition,
+                        Math.Round(note.SlideStartTime, TIME_EPS),
+                        Math.Round(note.SlideStartTime + note.SlideTime, TIME_EPS),
+                        note.StartPosition,
                         endPosition,
                         3,
-                        note.noteContent!,
+                        note.RawContent!,
                         positionX,
                         positionY
                     ));
                 }
-                else if (note.noteType == SimaiNoteType.Hold)
+                else if (note.Type == SimaiNoteType.Hold)
                 {
                     opSequence.Add(new MaimaiOperationMultNote(
                         Math.Round(baseTime, TIME_EPS),
-                        Math.Round(baseTime + note.holdTime, TIME_EPS),
-                        note.startPosition,
-                        note.startPosition,
+                        Math.Round(baseTime + note.HoldTime, TIME_EPS),
+                        note.StartPosition,
+                        note.StartPosition,
                         2,
-                        note.noteContent!,
+                        note.RawContent!,
                         positionX,
                         positionY
                     ));
@@ -295,31 +296,31 @@ public partial class MuriCheck : Window
 
         foreach (var noteGroup in SimaiProcess.notelist)
         {
-            var baseTime = noteGroup.time;
-            var positionX = noteGroup.rawTextPositionX;
-            var positionY = noteGroup.rawTextPositionY;
+            var baseTime = noteGroup.Timing;
+            var positionX = noteGroup.RawTextPositionX;
+            var positionY = noteGroup.RawTextPositionY;
 
-            foreach (var note in noteGroup.getNotes())
-                if (note.noteType == SimaiNoteType.Tap ||
-                    note.noteType == SimaiNoteType.Hold)
+            foreach (var note in noteGroup.Notes)
+                if (note.Type == SimaiNoteType.Tap ||
+                    note.Type == SimaiNoteType.Hold)
                 {
                     opSequence.Add(new MaimaiOperationSlide(
                         baseTime,
-                        note.startPosition,
+                        note.StartPosition,
                         0,
-                        note.noteContent!,
+                        note.RawContent!,
                         positionX,
                         positionY
                     ));
                 }
-                else if (note.noteType == SimaiNoteType.Slide)
+                else if (note.Type == SimaiNoteType.Slide)
                 {
                     // 星星头加入队列
                     opSequence.Add(new MaimaiOperationSlide(
                         baseTime,
-                        note.startPosition,
+                        note.StartPosition,
                         0,
-                        note.noteContent!,
+                        note.RawContent!,
                         positionX,
                         positionY
                     ));
@@ -329,7 +330,7 @@ public partial class MuriCheck : Window
 
                     try
                     {
-                        var temp = Regex.Match(note.noteContent!, prog);
+                        var temp = Regex.Match(note.RawContent!, prog);
                         sStart = temp.Groups[1].Value;
                         sType = temp.Groups[2].Value;
                         sEnd = temp.Groups[3].Value;
@@ -338,7 +339,7 @@ public partial class MuriCheck : Window
                     {
                         addWarning(string.Format(
                             MainWindow.GetLocalizedString("SyntaxError"),
-                            note.noteContent,
+                            note.RawContent,
                             positionY + 1,
                             positionX + 1
                         ), positionX, positionY);
@@ -393,10 +394,10 @@ public partial class MuriCheck : Window
                             var timeRatio = each["time"]!.ToObject<double>();
                             var passArea = each["area"]!.ToObject<int>();
                             opSequence.Add(new MaimaiOperationSlide(
-                                timeRatio * note.slideTime + note.slideStartTime,
+                                timeRatio * note.SlideTime + note.SlideStartTime,
                                 notePos(passArea + int.Parse(sStart), false),
                                 1,
-                                note.noteContent!,
+                                note.RawContent!,
                                 positionX,
                                 positionY
                             ));
@@ -406,7 +407,7 @@ public partial class MuriCheck : Window
                     {
                         addWarning(string.Format(
                             MainWindow.GetLocalizedString("SyntaxError"),
-                            note.noteContent,
+                            note.RawContent,
                             positionY + 1,
                             positionX + 1
                         ), positionX, positionY);

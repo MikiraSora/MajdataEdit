@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using MajSimai;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -140,7 +141,7 @@ public partial class MainWindow
                     if ((bool)FollowPlayCheck.IsChecked!)
                     {
                         ghostCusorPositionTime = (float)nearestTime;
-                        SeekTextFromIndex(se.noteGroupIndex);
+                        SeekTextFromCurrentTime();
                     }
                 });
             }
@@ -157,15 +158,15 @@ public partial class MainWindow
         double baseTime, noteTime;
         foreach (var noteGroup in SimaiProcess.notelist)
         {
-            baseTime = noteGroup.time;
-            foreach (var note in noteGroup.getNotes())
+            baseTime = noteGroup.Timing;
+            foreach (var note in noteGroup.Notes)
             {
-                if (note.noteType == SimaiNoteType.Tap || note.noteType == SimaiNoteType.Touch)
+                if (note.Type == SimaiNoteType.Tap || note.Type == SimaiNoteType.Touch)
                     noteTime = baseTime;
-                else if (note.noteType == SimaiNoteType.Hold || note.noteType == SimaiNoteType.TouchHold)
-                    noteTime = baseTime + note.holdTime;
-                else if (note.noteType == SimaiNoteType.Slide)
-                    noteTime = note.slideStartTime + note.slideTime;
+                else if (note.Type == SimaiNoteType.Hold || note.Type == SimaiNoteType.TouchHold)
+                    noteTime = baseTime + note.HoldTime;
+                else if (note.Type == SimaiNoteType.Slide)
+                    noteTime = note.SlideStartTime + note.SlideTime;
                 else
                     noteTime = -1;
                 if (noteTime > latestNoteFinishTime) latestNoteFinishTime = noteTime;
@@ -186,7 +187,7 @@ public partial class MainWindow
                     try
                     {
                         var clock_cnt = int.Parse(cmdl.Substring(13));
-                        var clock_int = 60.0d / SimaiProcess.notelist[0].currentBpm;
+                        var clock_int = 60.0d / SimaiProcess.notelist[0].Bpm;
                         for (var i = 0; i < clock_cnt; i++)
                             waitToBePlayed.Add(new SoundEffectTiming(i * clock_int, _hasClock: true));
                     }
@@ -198,37 +199,37 @@ public partial class MainWindow
         for (var i = 0; i < SimaiProcess.notelist.Count; i++)
         {
             var noteGroup = SimaiProcess.notelist[i];
-            if (noteGroup.time < startTime) continue;
+            if (noteGroup.Timing < startTime) continue;
 
             SoundEffectTiming stobj;
 
             // 如果目前为止已经有一个SE了 那么就直接使用这个SE
-            var combIndex = waitToBePlayed.FindIndex(o => Math.Abs(o.time - noteGroup.time) < 0.001f);
+            var combIndex = waitToBePlayed.FindIndex(o => Math.Abs(o.time - noteGroup.Timing) < 0.001f);
             if (combIndex != -1)
                 stobj = waitToBePlayed[combIndex];
             else
-                stobj = new SoundEffectTiming(noteGroup.time);
+                stobj = new SoundEffectTiming(noteGroup.Timing);
 
             stobj.noteGroupIndex = i;
 
-            var notes = noteGroup.getNotes();
+            var notes = noteGroup.Notes;
             foreach (var note in notes)
-                switch (note.noteType)
+                switch (note.Type)
                 {
                     case SimaiNoteType.Tap:
                     {
                         stobj.hasAnswer = true;
-                        if (note.isBreak)
+                        if (note.IsBreak)
                         {
                             // 如果是Break 则有Break判定音和Break欢呼音（2600）
                             stobj.hasBreak = true;
                             stobj.hasJudgeBreak = true;
                         }
 
-                        if (note.isEx)
+                        if (note.IsEx)
                             // 如果是Ex 则有Ex判定音
                             stobj.hasJudgeEx = true;
-                        if (!note.isBreak && !note.isEx)
+                        if (!note.IsBreak && !note.IsEx)
                             // 如果二者皆没有 则是普通note 播放普通判定音
                             stobj.hasJudge = true;
                         break;
@@ -237,30 +238,30 @@ public partial class MainWindow
                     {
                         stobj.hasAnswer = true;
                         // 类似于Tap 判断Break和Ex的音效 二者皆无则为普通
-                        if (note.isBreak)
+                        if (note.IsBreak)
                         {
                             stobj.hasBreak = true;
                             stobj.hasJudgeBreak = true;
                         }
 
-                        if (note.isEx) stobj.hasJudgeEx = true;
-                        if (!note.isBreak && !note.isEx) stobj.hasJudge = true;
+                        if (note.IsEx) stobj.hasJudgeEx = true;
+                        if (!note.IsBreak && !note.IsEx) stobj.hasJudge = true;
 
                         // 计算Hold尾部的音效
-                        if (!(note.holdTime <= 0.00f))
+                        if (!(note.HoldTime <= 0.00f))
                         {
                             // 如果是短hold（六角tap），则忽略尾部音效。否则，才会计算尾部音效
-                            var targetTime = noteGroup.time + note.holdTime;
+                            var targetTime = noteGroup.Timing + note.HoldTime;
                             var nearIndex = waitToBePlayed.FindIndex(o => Math.Abs(o.time - targetTime) < 0.001f);
                             if (nearIndex != -1)
                             {
                                 waitToBePlayed[nearIndex].hasAnswer = true;
-                                if (!note.isBreak && !note.isEx) waitToBePlayed[nearIndex].hasJudge = true;
+                                if (!note.IsBreak && !note.IsEx) waitToBePlayed[nearIndex].hasJudge = true;
                             }
                             else
                             {
                                 // 只有最普通的Hold才有结尾的判定音 Break和Ex型则没有（Break没有为推定）
-                                var holdRelease = new SoundEffectTiming(targetTime, true, !note.isBreak && !note.isEx);
+                                var holdRelease = new SoundEffectTiming(targetTime, true, !note.IsBreak && !note.IsEx);
                                 waitToBePlayed.Add(holdRelease);
                             }
                         }
@@ -269,26 +270,26 @@ public partial class MainWindow
                     }
                     case SimaiNoteType.Slide:
                     {
-                        if (!note.isSlideNoHead)
+                        if (!note.IsSlideNoHead)
                         {
                             // 当Slide不是无头星星的时候 才有answer音和判定音
                             stobj.hasAnswer = true;
-                            if (note.isBreak)
+                            if (note.IsBreak)
                             {
                                 stobj.hasBreak = true;
                                 stobj.hasJudgeBreak = true;
                             }
 
-                            if (note.isEx) stobj.hasJudgeEx = true;
-                            if (!note.isBreak && !note.isEx) stobj.hasJudge = true;
+                            if (note.IsEx) stobj.hasJudgeEx = true;
+                            if (!note.IsBreak && !note.IsEx) stobj.hasJudge = true;
                         }
 
                         // Slide启动音效
-                        var targetTime = note.slideStartTime;
+                        var targetTime = note.SlideStartTime;
                         var nearIndex = waitToBePlayed.FindIndex(o => Math.Abs(o.time - targetTime) < 0.001f);
                         if (nearIndex != -1)
                         {
-                            if (note.isSlideBreak)
+                            if (note.IsSlideBreak)
                                 // 如果是break slide的话 使用break slide的启动音效
                                 waitToBePlayed[nearIndex].hasBreakSlideStart = true;
                             else
@@ -298,7 +299,7 @@ public partial class MainWindow
                         else
                         {
                             SoundEffectTiming slide;
-                            if (note.isSlideBreak)
+                            if (note.IsSlideBreak)
                                 slide = new SoundEffectTiming(targetTime, _hasBreakSlideStart: true);
                             else
                                 slide = new SoundEffectTiming(targetTime, _hasSlide: true);
@@ -306,9 +307,9 @@ public partial class MainWindow
                         }
 
                         // Slide尾巴 如果是Break Slide的话 就要添加一个Break音效
-                        if (note.isSlideBreak)
+                        if (note.IsSlideBreak)
                         {
-                            targetTime = note.slideStartTime + note.slideTime;
+                            targetTime = note.SlideStartTime + note.SlideTime;
                             nearIndex = waitToBePlayed.FindIndex(o => Math.Abs(o.time - targetTime) < 0.001f);
                             if (nearIndex != -1)
                             {
@@ -329,7 +330,7 @@ public partial class MainWindow
                     {
                         stobj.hasAnswer = true;
                         stobj.hasTouch = true;
-                        if (note.isHanabi) stobj.hasHanabi = true;
+                        if (note.IsHanabi) stobj.hasHanabi = true;
                         break;
                     }
                     case SimaiNoteType.TouchHold:
@@ -338,17 +339,17 @@ public partial class MainWindow
                         stobj.hasTouch = true;
                         stobj.hasTouchHold = true;
                         // 计算TouchHold结尾
-                        var targetTime = noteGroup.time + note.holdTime;
+                        var targetTime = noteGroup.Timing + note.HoldTime;
                         var nearIndex = waitToBePlayed.FindIndex(o => Math.Abs(o.time - targetTime) < 0.001f);
                         if (nearIndex != -1)
                         {
-                            if (note.isHanabi) waitToBePlayed[nearIndex].hasHanabi = true;
+                            if (note.IsHanabi) waitToBePlayed[nearIndex].hasHanabi = true;
                             waitToBePlayed[nearIndex].hasAnswer = true;
                             waitToBePlayed[nearIndex].hasTouchHoldEnd = true;
                         }
                         else
                         {
-                            var tHoldRelease = new SoundEffectTiming(targetTime, true, _hasHanabi: note.isHanabi,
+                            var tHoldRelease = new SoundEffectTiming(targetTime, true, _hasHanabi: note.IsHanabi,
                                 _hasTouchHoldEnd: true);
                             waitToBePlayed.Add(tHoldRelease);
                         }

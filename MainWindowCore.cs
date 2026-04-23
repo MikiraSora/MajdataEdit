@@ -1,9 +1,19 @@
-﻿using System.Diagnostics;
+﻿using DiscordRPC;
+using MajdataEdit.AutoSaveModule;
+using MajdataEdit.SyntaxModule;
+using MajSimai;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Semver;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Timers;
 using System.Windows;
@@ -16,13 +26,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
-using DiscordRPC;
-using MajdataEdit.AutoSaveModule;
-using MajdataEdit.SyntaxModule;
-using Microsoft.Win32;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Semver;
 using Un4seen.Bass;
 using Un4seen.Bass.AddOn.Fx;
 using WPFLocalizeExtension.Engine;
@@ -118,31 +121,29 @@ public partial class MainWindow : Window
         return pos;
     }
 
-    private void SeekTextFromTime()
+    private void SeekTextFromCurrentTime()
     {
-        //Console.WriteLine("SeekText");
         var time = Bass.BASS_ChannelBytes2Seconds(bgmStream, Bass.BASS_ChannelGetPosition(bgmStream));
-        var timingList = new List<SimaiTimingPoint>();
-        timingList.AddRange(SimaiProcess.timinglist);
-        var noteList = SimaiProcess.notelist;
-        if (SimaiProcess.timinglist.Count <= 0) return;
-        timingList.Sort((x, y) => Math.Abs(time - x.time).CompareTo(Math.Abs(time - y.time)));
-        var theNote = timingList[0];
-        timingList.Clear();
-        timingList.AddRange(SimaiProcess.timinglist);
-        var indexOfTheNote = timingList.IndexOf(theNote);
-        var pointer = FumenContent.Document.Blocks.ToList()[theNote.rawTextPositionY].ContentStart
-            .GetPositionAtOffset(theNote.rawTextPositionX);
-        FumenContent.Selection.Select(pointer, pointer);
-    }
 
-    private void SeekTextFromIndex(int noteGroupIndex)
-    {
-        if (SimaiProcess.notelist.Count > noteGroupIndex + 1 && noteGroupIndex >= 0)
+        for (int i = 0; i < SimaiProcess.notelist.Count - 1; i++)
         {
-            var theNote = SimaiProcess.notelist[noteGroupIndex];
-            var pointer = FumenContent.Document.Blocks.ToList()[theNote.rawTextPositionY].ContentStart
-                .GetPositionAtOffset(theNote.rawTextPositionX);
+            var cur = SimaiProcess.notelist[i];
+            var next = SimaiProcess.notelist[i + 1];
+
+            if (cur.Timing <= time && time <= next.Timing)
+            {
+                var pointer = FumenContent.Document.Blocks.ToList()[cur.RawTextPositionY - 1].ContentStart
+                .GetPositionAtOffset(cur.RawTextPositionX);
+                FumenContent.Selection.Select(pointer, pointer);
+
+                return;
+            }
+        }
+
+        if (SimaiProcess.notelist.LastOrDefault() is SimaiTimingPoint last && time >= last.Timing)
+        {
+            var pointer = FumenContent.Document.Blocks.ToList()[last.RawTextPositionY].ContentStart
+            .GetPositionAtOffset(last.RawTextPositionX);
             FumenContent.Selection.Select(pointer, pointer);
         }
     }
@@ -312,7 +313,7 @@ public partial class MainWindow : Window
         LevelSelector.SelectedItem = LevelSelector.Items[0];
         ReadSetting();
         SetRawFumenText(SimaiProcess.fumens[selectedDifficulty]);
-        SeekTextFromTime();
+        SeekTextFromCurrentTime();
         SimaiProcess.Serialize(GetRawFumenText());
         FumenContent.Focus();
         DrawWave();
@@ -362,12 +363,12 @@ public partial class MainWindow : Window
         {
             songLength = Bass.BASS_ChannelBytes2Seconds(bgmDecode,
                 Bass.BASS_ChannelGetLength(bgmDecode, BASSMode.BASS_POS_BYTE));
-/*                int sampleNumber = (int)((songLength * 1000) / (0.02f * 1000));
-                wavedBs = new float[sampleNumber];
-                for (int i = 0; i < sampleNumber; i++)
-                {
-                    wavedBs[i] = Bass.BASS_ChannelGetLevels(bgmDecode, 0.02f, BASSLevel.BASS_LEVEL_MONO)[0];
-                }*/
+            /*                int sampleNumber = (int)((songLength * 1000) / (0.02f * 1000));
+                            wavedBs = new float[sampleNumber];
+                            for (int i = 0; i < sampleNumber; i++)
+                            {
+                                wavedBs[i] = Bass.BASS_ChannelGetLevels(bgmDecode, 0.02f, BASSLevel.BASS_LEVEL_MONO)[0];
+                            }*/
             Bass.BASS_StreamFree(bgmDecode);
             var bgmSample = Bass.BASS_SampleLoad(maidataDir + "/track" + (useOgg ? ".ogg" : ".mp3"), 0, 0, 1, BASSFlag.BASS_DEFAULT);
             var bgmInfo = Bass.BASS_SampleGetInfo(bgmSample);
@@ -574,7 +575,7 @@ public partial class MainWindow : Window
 
     private void AddGesture(string keyGusture, string command)
     {
-        var gesture = (InputGesture) new KeyGestureConverter().ConvertFromString(keyGusture)!;
+        var gesture = (InputGesture)new KeyGestureConverter().ConvertFromString(keyGusture)!;
         var inputBinding = new InputBinding((ICommand)FumenContent.Resources[command], gesture);
         FumenContent.InputBindings.Add(inputBinding);
     }
@@ -717,11 +718,11 @@ public partial class MainWindow : Window
             bpmChangeTimes.Clear();
             bpmChangeValues.Clear();
             foreach (var timing in SimaiProcess.timinglist)
-                if (timing.currentBpm != lastbpm)
+                if (timing.Bpm != lastbpm)
                 {
-                    bpmChangeTimes.Add(timing.time);
-                    bpmChangeValues.Add(timing.currentBpm);
-                    lastbpm = timing.currentBpm;
+                    bpmChangeTimes.Add(timing.Timing);
+                    bpmChangeValues.Add(timing.Bpm);
+                    lastbpm = timing.Bpm;
                 }
 
             bpmChangeTimes.Add(Bass.BASS_ChannelBytes2Seconds(bgmStream, Bass.BASS_ChannelGetLength(bgmStream)));
@@ -770,8 +771,8 @@ public partial class MainWindow : Window
             foreach (var note in SimaiProcess.timinglist)
             {
                 if (note == null) break;
-                if (note.time - currentTime > deltatime) continue;
-                var x = ((float)(note.time / step) - startindex) * linewidth;
+                if (note.Timing - currentTime > deltatime) continue;
+                var x = ((float)(note.Timing / step) - startindex) * linewidth;
                 graphics.DrawLine(pen, x, 60, x, 75);
             }
 
@@ -779,22 +780,22 @@ public partial class MainWindow : Window
             foreach (var note in SimaiProcess.notelist)
             {
                 if (note == null) break;
-                if (note.time - currentTime > deltatime) continue;
-                var notes = note.getNotes();
-                var isEach = notes.Count(o => !o.isSlideNoHead) > 1;
+                if (note.Timing - currentTime > deltatime) continue;
+                var notes = note.Notes;
+                var isEach = notes.Count(o => !o.IsSlideNoHead) > 1;
 
-                var x = ((float)(note.time / step) - startindex) * linewidth;
+                var x = ((float)(note.Timing / step) - startindex) * linewidth;
 
                 foreach (var noteD in notes)
                 {
-                    var y = noteD.startPosition * 6.875f + 8f; //与键位有关
+                    var y = noteD.StartPosition * 6.875f + 8f; //与键位有关
 
-                    if (noteD.isHanabi)
+                    if (noteD.IsHanabi)
                     {
                         var xDeltaHanabi = (float)(1f / step) * linewidth; //Hanabi is 1s due to frame analyze
                         var rectangleF = new RectangleF(x, 0, xDeltaHanabi, 75);
-                        if (noteD.noteType == SimaiNoteType.TouchHold)
-                            rectangleF.X += (float)(noteD.holdTime / step) * linewidth;
+                        if (noteD.Type == SimaiNoteType.TouchHold)
+                            rectangleF.X += (float)(noteD.HoldTime / step) * linewidth;
                         var gradientBrush = new LinearGradientBrush(
                             rectangleF,
                             Color.FromArgb(100, 255, 0, 0),
@@ -804,12 +805,12 @@ public partial class MainWindow : Window
                         graphics.FillRectangle(gradientBrush, rectangleF);
                     }
 
-                    if (noteD.noteType == SimaiNoteType.Tap)
+                    if (noteD.Type == SimaiNoteType.Tap)
                     {
-                        if (noteD.isForceStar)
+                        if (noteD.IsForceStar)
                         {
                             pen.Width = 3;
-                            if (noteD.isBreak)
+                            if (noteD.IsBreak)
                                 pen.Color = Color.OrangeRed;
                             else if (isEach)
                                 pen.Color = Color.Gold;
@@ -822,7 +823,7 @@ public partial class MainWindow : Window
                         else
                         {
                             pen.Width = 2;
-                            if (noteD.isBreak)
+                            if (noteD.IsBreak)
                                 pen.Color = Color.OrangeRed;
                             else if (isEach)
                                 pen.Color = Color.Gold;
@@ -832,24 +833,24 @@ public partial class MainWindow : Window
                         }
                     }
 
-                    if (noteD.noteType == SimaiNoteType.Touch)
+                    if (noteD.Type == SimaiNoteType.Touch)
                     {
                         pen.Width = 2;
                         pen.Color = isEach ? Color.Gold : Color.DeepSkyBlue;
                         graphics.DrawRectangle(pen, x - 2.5f, y - 2.5f, 5, 5);
                     }
 
-                    if (noteD.noteType == SimaiNoteType.Hold)
+                    if (noteD.Type == SimaiNoteType.Hold)
                     {
                         pen.Width = 3;
-                        if (noteD.isBreak)
+                        if (noteD.IsBreak)
                             pen.Color = Color.OrangeRed;
                         else if (isEach)
                             pen.Color = Color.Gold;
                         else
                             pen.Color = Color.LightPink;
 
-                        var xRight = x + (float)(noteD.holdTime / step) * linewidth;
+                        var xRight = x + (float)(noteD.HoldTime / step) * linewidth;
 
                         //1h[0:1]
                         if (!float.IsNormal(xRight)) xRight = ushort.MaxValue;
@@ -858,10 +859,10 @@ public partial class MainWindow : Window
 
                     }
 
-                    if (noteD.noteType == SimaiNoteType.TouchHold)
+                    if (noteD.Type == SimaiNoteType.TouchHold)
                     {
                         pen.Width = 3;
-                        var xDelta = (float)(noteD.holdTime / step) * linewidth / 4f;
+                        var xDelta = (float)(noteD.HoldTime / step) * linewidth / 4f;
                         //Console.WriteLine("HoldPixel"+ xDelta);
                         if (!float.IsNormal(xDelta)) xDelta = ushort.MaxValue;
                         if (xDelta < 1f) xDelta = 1;
@@ -876,12 +877,12 @@ public partial class MainWindow : Window
                         graphics.DrawLine(pen, x, y, x + xDelta, y);
                     }
 
-                    if (noteD.noteType == SimaiNoteType.Slide)
+                    if (noteD.Type == SimaiNoteType.Slide)
                     {
                         pen.Width = 3;
-                        if (!noteD.isSlideNoHead)
+                        if (!noteD.IsSlideNoHead)
                         {
-                            if (noteD.isBreak)
+                            if (noteD.IsBreak)
                                 pen.Color = Color.OrangeRed;
                             else if (isEach)
                                 pen.Color = Color.Gold;
@@ -892,15 +893,15 @@ public partial class MainWindow : Window
                                 new PointF(x - 7f, y - 7f));
                         }
 
-                        if (noteD.isSlideBreak)
+                        if (noteD.IsSlideBreak)
                             pen.Color = Color.OrangeRed;
-                        else if (notes.Count(o => o.noteType == SimaiNoteType.Slide) >= 2)
+                        else if (notes.Count(o => o.Type == SimaiNoteType.Slide) >= 2)
                             pen.Color = Color.Gold;
                         else
                             pen.Color = Color.SkyBlue;
                         pen.DashStyle = DashStyle.Dot;
-                        var xSlide = (float)(noteD.slideStartTime / step - startindex) * linewidth;
-                        var xSlideRight = (float)(noteD.slideTime / step) * linewidth + xSlide;
+                        var xSlide = (float)(noteD.SlideStartTime / step - startindex) * linewidth;
+                        var xSlideRight = (float)(noteD.SlideTime / step) * linewidth + xSlide;
 
                         if (!float.IsNormal(xSlideRight)) xSlideRight = ushort.MaxValue;
                         if (!float.IsNormal(xSlide)) xSlide = ushort.MaxValue;
@@ -962,7 +963,7 @@ public partial class MainWindow : Window
         var time = Bass.BASS_ChannelBytes2Seconds(bgmStream, Bass.BASS_ChannelGetPosition(bgmStream));
         SetBgmPosition(time + delta);
         SimaiProcess.ClearNoteListPlayedState();
-        SeekTextFromTime();
+        SeekTextFromCurrentTime();
         Task.Run(() => DrawWave());
     }
 
@@ -1121,8 +1122,8 @@ public partial class MainWindow : Window
             TogglePause();
         else
         {
-            if (lastEditorState != EditorControlMethod.Pause && 
-                editorSetting!.SyntaxCheckLevel == 2 && 
+            if (lastEditorState != EditorControlMethod.Pause &&
+                editorSetting!.SyntaxCheckLevel == 2 &&
                 SyntaxChecker.GetErrorCount() != 0)
             {
                 ShowErrorWindow();
@@ -1130,7 +1131,7 @@ public partial class MainWindow : Window
             }
             TogglePlay(playMethod);
         }
-            
+
     }
 
     private void TogglePlayAndStop(PlayMethod playMethod = PlayMethod.Normal)
@@ -1230,7 +1231,6 @@ public partial class MainWindow : Window
         var jsonStruct = new Majson();
         foreach (var note in SimaiProcess.notelist)
         {
-            note.noteList = note.getNotes();
             jsonStruct.timingList.Add(note);
         }
 
@@ -1514,7 +1514,9 @@ public partial class MainWindow : Window
         {
             requestHandler(
                 WebControl.RequestGETAsync("http://api.github.com/repos/LingFeng-bbben/MajdataView/releases/latest"));
-        } catch {
+        }
+        catch
+        {
             // 网络请求失败
             if (!onStart) MessageBox.Show(GetLocalizedString("RequestFail"), GetLocalizedString("CheckUpdate"));
         }

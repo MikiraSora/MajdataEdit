@@ -54,6 +54,9 @@
         </None>
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\MajSimaiX\MajSimai.csproj" />
+    </ItemGroup>
+    <ItemGroup>
       <Resource Include="Image\bg_dummy.jpg" />
       <Resource Include="Image\outline_find_replace_white_24dp.png" />
       <Resource Include="Image\outline_search_white_24dp.png" />

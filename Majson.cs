@@ -1,4 +1,6 @@
-﻿namespace MajdataEdit;
+﻿using MajSimai;
+
+namespace MajdataEdit;
 
 internal class Majson
 {
