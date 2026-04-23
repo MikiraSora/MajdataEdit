@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.5.11716.220 stable
+VisualStudioVersion = 18.5.11716.220
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MajdataEdit", "MajdataEdit.csproj", "{83EE1671-5045-4416-9D8B-054F389A511F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MajSimai", "..\MajSimaiX\MajSimai.csproj", "{7D2DDC93-913F-C1D5-0884-5CD5C9D170C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MajSimai", "MajSimaiX\MajSimai.csproj", "{E0CE8A33-E4BF-686D-915B-38A207963203}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{83EE1671-5045-4416-9D8B-054F389A511F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{83EE1671-5045-4416-9D8B-054F389A511F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{83EE1671-5045-4416-9D8B-054F389A511F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7D2DDC93-913F-C1D5-0884-5CD5C9D170C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7D2DDC93-913F-C1D5-0884-5CD5C9D170C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7D2DDC93-913F-C1D5-0884-5CD5C9D170C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7D2DDC93-913F-C1D5-0884-5CD5C9D170C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0CE8A33-E4BF-686D-915B-38A207963203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0CE8A33-E4BF-686D-915B-38A207963203}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0CE8A33-E4BF-686D-915B-38A207963203}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0CE8A33-E4BF-686D-915B-38A207963203}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
