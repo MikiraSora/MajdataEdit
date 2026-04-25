@@ -11,6 +11,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using DiscordRPC.Logging;
 using MajdataEdit.AutoSaveModule;
+using MajdataEdit.Ma2Export;
 using Microsoft.Win32;
 using Un4seen.Bass;
 using MajdataEdit.SyntaxModule;
@@ -223,6 +224,122 @@ public partial class MainWindow : Window
     private void Menu_ExportRender_Click(object sender, RoutedEventArgs e)
     {
         TogglePlayAndPause(PlayMethod.Record);
+    }
+
+    private void Menu_GenerateMa2_Click(object sender, RoutedEventArgs e)
+    {
+        if (selectedDifficulty == -1 || string.IsNullOrWhiteSpace(maidataDir))
+        {
+            MessageBox.Show("请先打开 maidata.txt。", "生成 .ma2谱面文件", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        SimaiProcess.fumens[selectedDifficulty] = GetRawFumenText();
+
+        var options = SimaiProcess.fumens
+            .Select((chart, index) => new { Chart = chart, Index = index })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Chart))
+            .Select(x => new Ma2DifficultyOption(
+                x.Index + 1,
+                SimaiProcess.GetDifficultyText(x.Index),
+                SimaiProcess.levels[x.Index] ?? "",
+                x.Chart))
+            .ToArray();
+
+        if (options.Length == 0)
+        {
+            MessageBox.Show("没有可导出的非空 &inote_。", "生成 .ma2谱面文件", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var difficultyWindow = new Ma2DifficultySelectionWindow(options)
+        {
+            Owner = this
+        };
+        if (difficultyWindow.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var selectedOptions = difficultyWindow.SelectedOptions;
+        if (selectedOptions.Count == 0)
+        {
+            return;
+        }
+
+        var outputFolder = SelectMa2OutputFolder();
+        if (string.IsNullOrWhiteSpace(outputFolder))
+        {
+            return;
+        }
+
+        var converter = new SimaiChartConverter();
+        var musicId6 = Ma2ExportMetadata.GetMusicId6(SimaiProcess.other_commands);
+        var fallbackWholeBpm = Ma2ExportMetadata.GetWholeBpm(SimaiProcess.other_commands);
+        IReadOnlyList<Ma2ExportResult> exportResults;
+        try
+        {
+            exportResults = converter.ConvertSelectedCharts(
+                selectedOptions.Select(x => new Ma2ExportChart(x.DiffId, x.ChartContent)),
+                musicId6,
+                0,
+                fallbackWholeBpm);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("MA2 转换失败：\n" + ex.Message, "生成 .ma2谱面文件", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var written = 0;
+        var skipped = 0;
+        var failed = new List<string>();
+        foreach (var result in exportResults)
+        {
+            var outputPath = Path.Combine(outputFolder, result.FileName);
+            if (File.Exists(outputPath))
+            {
+                var overwrite = MessageBox.Show(
+                    "目标文件已存在，是否覆盖？\n" + outputPath,
+                    "生成 .ma2谱面文件",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                if (overwrite != MessageBoxResult.Yes)
+                {
+                    skipped++;
+                    continue;
+                }
+            }
+
+            try
+            {
+                File.WriteAllText(outputPath, result.Content);
+                written++;
+            }
+            catch (Exception ex)
+            {
+                failed.Add(result.FileName + ": " + ex.Message);
+            }
+        }
+
+        var message = $"生成完成：{written} 个文件。";
+        if (skipped > 0)
+        {
+            message += $"\n跳过：{skipped} 个文件。";
+        }
+
+        if (failed.Count > 0)
+        {
+            message += "\n写入失败：\n" + string.Join("\n", failed);
+        }
+
+        MessageBox.Show(message, "生成 .ma2谱面文件", MessageBoxButton.OK,
+            failed.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+    }
+
+    private string? SelectMa2OutputFolder()
+    {
+        return FolderPicker.SelectFolder(this, "选择 .ma2 输出文件夹", Directory.Exists(maidataDir) ? maidataDir : null);
     }
 
     private void MirrorLeftRight_MenuItem_Click(object? sender, RoutedEventArgs e)

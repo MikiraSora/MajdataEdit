@@ -55,58 +55,67 @@
         <Line StrokeThickness="3" Y2="56" Height="74" VerticalAlignment="Bottom" Stroke="Red" Y1="15"
               HorizontalAlignment="Left" Width="45" Grid.ColumnSpan="2" Margin="357,0,0,0" Grid.RowSpan="2" Grid.Row="1" Grid.Column="1" />
 
-        <Menu Height="19" VerticalAlignment="Top" Background="{DynamicResource ButtonsBackground}"
-              Foreground="{DynamicResource ButtonForeground}" Grid.ColumnSpan="3" Grid.RowSpan="2">
-            <MenuItem Header="{lex:Loc Files}" Foreground="{DynamicResource ButtonForeground}"
-                      Template="{DynamicResource DarkMenuItem}">
-                <MenuItem x:Name="Menu_New" Header="{lex:Loc New}" Click="Menu_New_Click" />
-                <MenuItem x:Name="Menu_Open" Header="{lex:Loc Open}" Click="Menu_Open_Click" />
-                <MenuItem x:Name="Menu_Save" Header="{lex:Loc Save}" Click="Menu_Save_Click" />
-                <MenuItem x:Name="Menu_SaveAs" Header="{lex:Loc SaveAs}" Click="Menu_SaveAs_Click" IsEnabled="False"
-                          Visibility="Collapsed" />
-                <Separator />
-                <MenuItem x:Name="Menu_AutosaveRecover" Header="{lex:Loc AutosaveRecoverWindowTitle}"
-                          Click="Menu_AutosaveRecover_Click" />
-                <Separator />
-                <MenuItem x:Name="Menu_ExportRender" Header="{lex:Loc ExportVideo}" Click="Menu_ExportRender_Click"
-                          IsEnabled="False" />
+        <DockPanel Height="19" VerticalAlignment="Top" Background="{DynamicResource ButtonsBackground}"
+                   Grid.ColumnSpan="3" Grid.RowSpan="2">
+            <Menu DockPanel.Dock="Right" HorizontalAlignment="Right" Background="{DynamicResource ButtonsBackground}"
+                  Foreground="{DynamicResource ButtonForeground}">
+                <MenuItem Header="Majnet" Click="MenuItem_Majnet_Click"
+                          Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}" />
+                <MenuItem Header="{lex:Loc Github}" Click="MenuItem_GitHub_Click"
+                          Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}" />
+                <MenuItem Header="{lex:Loc CheckUpdate}" Click="CheckUpdate_Click"
+                          Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}" />
+            </Menu>
+            <Menu Background="{DynamicResource ButtonsBackground}" Foreground="{DynamicResource ButtonForeground}">
+                <MenuItem Header="{lex:Loc Files}" Foreground="{DynamicResource ButtonForeground}"
+                          Template="{DynamicResource DarkMenuItem}">
+                    <MenuItem x:Name="Menu_New" Header="{lex:Loc New}" Click="Menu_New_Click" />
+                    <MenuItem x:Name="Menu_Open" Header="{lex:Loc Open}" Click="Menu_Open_Click" />
+                    <MenuItem x:Name="Menu_Save" Header="{lex:Loc Save}" Click="Menu_Save_Click" />
+                    <MenuItem x:Name="Menu_SaveAs" Header="{lex:Loc SaveAs}" Click="Menu_SaveAs_Click" IsEnabled="False"
+                              Visibility="Collapsed" />
+                    <Separator />
+                    <MenuItem x:Name="Menu_AutosaveRecover" Header="{lex:Loc AutosaveRecoverWindowTitle}"
+                              Click="Menu_AutosaveRecover_Click" />
+                    <Separator />
+                    <MenuItem x:Name="Menu_ExportRender" Header="{lex:Loc ExportVideo}" Click="Menu_ExportRender_Click"
+                              IsEnabled="False" />
 
-            </MenuItem>
-            <MenuItem x:Name="MenuEdit" Header="{lex:Loc Edit}" IsEnabled="False"
-                      Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}">
-                <MenuItem Header="{lex:Loc MirrorLR}" Click="MirrorLeftRight_MenuItem_Click" />
-                <MenuItem Header="{lex:Loc MirrorUD}" Click="MirrorUpDown_MenuItem_Click" />
-                <MenuItem Header="{lex:Loc Mirror180}" Click="Mirror180_MenuItem_Click" />
-                <MenuItem Header="{lex:Loc Mirror45}" Click="Mirror45_MenuItem_Click" />
-                <MenuItem Header="{lex:Loc MirrorCcw45}" Click="MirrorCcw45_MenuItem_Click" />
-                <Separator />
-                <MenuItem Header="{lex:Loc MapInfo}" Click="MenuItem_InfomationEdit_Click" />
-                <Separator />
-                <MenuItem Header="{lex:Loc FindAndReplace}" Click="MenuFind_Click" />
-            </MenuItem>
-            <MenuItem Header="{lex:Loc Setting}" Foreground="{DynamicResource ButtonForeground}"
-                      Template="{DynamicResource DarkMenuItem}">
-                <MenuItem x:Name="VolumnSetting" Header="{lex:Loc Volume}" Click="MenuItem_SoundSetting_Click"
-                          IsEnabled="False" />
-                <Separator />
-                <MenuItem Header="{lex:Loc EditorSetting}" Click="MenuItem_EditorSetting_Click" />
-                <MenuItem Header="{lex:Loc RemapViewer}" Click="Menu_ResetViewWindow" />
-            </MenuItem>
-            <MenuItem Header="{lex:Loc Tools}" Foreground="{DynamicResource ButtonForeground}"
-                      Template="{DynamicResource DarkMenuItem}">
-                <MenuItem Header="{lex:Loc BPMtap}" Click="BPMtap_MenuItem_Click" />
-                <MenuItem x:Name="MenuMuriCheck" Header="{lex:Loc MapMuriDetc}" Click="MuriCheck_Click_1"
-                          IsEnabled="False" />
-                <MenuItem x:Name="SyntaxCheckButton" Header="{lex:Loc SyntaxDisplay}" Click="SyntaxCheckButton_Click"
-                          IsEnabled="False" />
-            </MenuItem>
-            <MenuItem Header="Majnet" Click="MenuItem_Majnet_Click"
-                      Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}" />
-            <MenuItem Header="{lex:Loc Github}" Click="MenuItem_GitHub_Click"
-                      Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}" />
-            <MenuItem Header="{lex:Loc CheckUpdate}" Click="CheckUpdate_Click"
-                      Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}" />
-        </Menu>
+                </MenuItem>
+                <MenuItem x:Name="MenuEdit" Header="{lex:Loc Edit}" IsEnabled="False"
+                          Foreground="{DynamicResource ButtonForeground}" Template="{DynamicResource DarkMenuItem}">
+                    <MenuItem Header="{lex:Loc MirrorLR}" Click="MirrorLeftRight_MenuItem_Click" />
+                    <MenuItem Header="{lex:Loc MirrorUD}" Click="MirrorUpDown_MenuItem_Click" />
+                    <MenuItem Header="{lex:Loc Mirror180}" Click="Mirror180_MenuItem_Click" />
+                    <MenuItem Header="{lex:Loc Mirror45}" Click="Mirror45_MenuItem_Click" />
+                    <MenuItem Header="{lex:Loc MirrorCcw45}" Click="MirrorCcw45_MenuItem_Click" />
+                    <Separator />
+                    <MenuItem Header="{lex:Loc MapInfo}" Click="MenuItem_InfomationEdit_Click" />
+                    <Separator />
+                    <MenuItem Header="{lex:Loc FindAndReplace}" Click="MenuFind_Click" />
+                </MenuItem>
+                <MenuItem Header="{lex:Loc Setting}" Foreground="{DynamicResource ButtonForeground}"
+                          Template="{DynamicResource DarkMenuItem}">
+                    <MenuItem x:Name="VolumnSetting" Header="{lex:Loc Volume}" Click="MenuItem_SoundSetting_Click"
+                              IsEnabled="False" />
+                    <Separator />
+                    <MenuItem Header="{lex:Loc EditorSetting}" Click="MenuItem_EditorSetting_Click" />
+                    <MenuItem Header="{lex:Loc RemapViewer}" Click="Menu_ResetViewWindow" />
+                </MenuItem>
+                <MenuItem Header="{lex:Loc Tools}" Foreground="{DynamicResource ButtonForeground}"
+                          Template="{DynamicResource DarkMenuItem}">
+                    <MenuItem Header="{lex:Loc BPMtap}" Click="BPMtap_MenuItem_Click" />
+                    <MenuItem x:Name="MenuMuriCheck" Header="{lex:Loc MapMuriDetc}" Click="MuriCheck_Click_1"
+                              IsEnabled="False" />
+                    <MenuItem x:Name="SyntaxCheckButton" Header="{lex:Loc SyntaxDisplay}" Click="SyntaxCheckButton_Click"
+                              IsEnabled="False" />
+                </MenuItem>
+                <MenuItem x:Name="MenuGenerate" Header="生成" Foreground="{DynamicResource ButtonForeground}"
+                          Template="{DynamicResource DarkMenuItem}">
+                    <MenuItem x:Name="Menu_GenerateMa2" Header=".ma2谱面文件" Click="Menu_GenerateMa2_Click" />
+                </MenuItem>
+            </Menu>
+        </DockPanel>
         <Image x:Name="FFTImage" HorizontalAlignment="Right" Margin="0,0,14,91" Width="254" Height="255"
                VerticalAlignment="Bottom" RenderTransformOrigin="0.5,0.5" Grid.Column="2" Grid.Row="1">
             <Image.RenderTransform>
