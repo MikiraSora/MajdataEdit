@@ -382,6 +382,33 @@ public partial class MainWindow : Window
         tap.Show();
     }
 
+    private void ImportTimingFromOsuBeatmap_MenuItem_Click(object? sender, RoutedEventArgs e)
+    {
+        var openFileDialog = new OpenFileDialog
+        {
+            Title = "选择 osu 谱面文件",
+            Filter = "osu 谱面文件 (*.osu)|*.osu|所有文件 (*.*)|*.*"
+        };
+
+        if (openFileDialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var timingText = ImportTimingFromOsuBeatmap.ImportTimingAndHitObjects(openFileDialog.FileName);
+            Clipboard.SetText(timingText);
+            MessageBox.Show("已解析 Timing 以及 HitObjects 并复制到剪贴板。", "从osu文件获取Timing以及HitObjects", MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("解析 osu Timing 以及 HitObjects 失败：\n" + ex.Message, "从osu文件获取Timing以及HitObjects", MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
     private void MenuItem_InfomationEdit_Click(object? sender, RoutedEventArgs e)
     {
         var infoWindow = new Infomation();
@@ -758,7 +785,7 @@ public partial class MainWindow : Window
 
     private void FumenContent_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (GetRawFumenText() == "" || isLoading) return;
+        if (isLoading || GetRawFumenText() == "") return;
         SetSavedState(false);
         if (chartChangeTimer.Interval < 33)
         {

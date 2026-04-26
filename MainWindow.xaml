@@ -105,6 +105,7 @@
                 <MenuItem Header="{lex:Loc Tools}" Foreground="{DynamicResource ButtonForeground}"
                           Template="{DynamicResource DarkMenuItem}">
                     <MenuItem Header="{lex:Loc BPMtap}" Click="BPMtap_MenuItem_Click" />
+                    <MenuItem Header="从osu文件获取Timing以及HitObjects" Click="ImportTimingFromOsuBeatmap_MenuItem_Click" />
                     <MenuItem x:Name="MenuMuriCheck" Header="{lex:Loc MapMuriDetc}" Click="MuriCheck_Click_1"
                               IsEnabled="False" />
                     <MenuItem x:Name="SyntaxCheckButton" Header="{lex:Loc SyntaxDisplay}" Click="SyntaxCheckButton_Click"

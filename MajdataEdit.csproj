@@ -27,6 +27,7 @@
       <None Remove="Image\outline_search_white_24dp.png" />
     </ItemGroup>
     <ItemGroup>
+        <PackageReference Include="Coosu.Beatmap" Version="2.5.1" />
         <PackageReference Include="radio42.Bass.Net.core" Version="2.4.17.5" />
         <PackageReference Include="DiscordRichPresence" Version="1.2.1.24" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
