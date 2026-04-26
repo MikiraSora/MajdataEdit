@@ -71,6 +71,7 @@ public partial class MainWindow : Window
     private EditorControlMethod lastEditorState;
     private TextSelection? lastFindPosition;
     private double? lastAutoPreviewWaveTime;
+    private long? fumenContentContextMenuRawPosition;
 
     private double lastMousePointX; //Used for drag scroll
 
@@ -117,11 +118,16 @@ public partial class MainWindow : Window
         isLoading = false;
     }
 
-    private long GetRawFumenPosition()
+    private long GetRawFumenPosition(TextPointer position)
     {
-        long pos = new TextRange(FumenContent.Document.ContentStart, FumenContent.CaretPosition).Text.Replace("\r", "")
+        long pos = new TextRange(FumenContent.Document.ContentStart, position).Text.Replace("\r", "")
             .Length;
         return pos;
+    }
+
+    private long GetRawFumenPosition()
+    {
+        return GetRawFumenPosition(FumenContent.CaretPosition);
     }
 
     private void SeekTextFromCurrentTime()

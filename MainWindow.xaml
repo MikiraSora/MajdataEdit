@@ -147,6 +147,7 @@
                      SelectionChanged="FumenContent_SelectionChanged" Grid.ColumnSpan="2"
                      InputMethod.IsInputMethodEnabled="False"
                      AutoWordSelection="False"
+                     PreviewMouseRightButtonDown="FumenContent_OnPreviewMouseRightButtonDown"
                      PreviewKeyDown="FumenContent_OnPreviewKeyDown" Grid.Row="1" Grid.Column="1">
             <RichTextBox.Resources>
                 <RoutedUICommand x:Key="PlayAndPause" Text="PlayAndPause" />
@@ -165,6 +166,34 @@
             <RichTextBox.Background>
                 <SolidColorBrush Color="#FF171717" Opacity="0.3" />
             </RichTextBox.Background>
+            <RichTextBox.ContextMenu>
+                <ContextMenu Opened="FumenContentContextMenu_OnOpened"
+                             Closed="FumenContentContextMenu_OnClosed">
+                    <MenuItem Header="{lex:Loc Key=EditorContextMenuUndo}"
+                              Command="ApplicationCommands.Undo"
+                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="{lex:Loc Key=EditorContextMenuRedo}"
+                              Command="ApplicationCommands.Redo"
+                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <Separator />
+                    <MenuItem Header="{lex:Loc Key=EditorContextMenuCut}"
+                              Command="ApplicationCommands.Cut"
+                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="{lex:Loc Key=EditorContextMenuCopy}"
+                              Command="ApplicationCommands.Copy"
+                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="{lex:Loc Key=EditorContextMenuPaste}"
+                              Command="ApplicationCommands.Paste"
+                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <MenuItem Header="{lex:Loc Key=EditorContextMenuSelectAll}"
+                              Command="ApplicationCommands.SelectAll"
+                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    <Separator />
+                    <MenuItem x:Name="FumenContentJumpToCursorMenuItem"
+                              Header="{lex:Loc Key=EditorContextMenuJumpToCursor}"
+                              Click="FumenContentJumpToCursorMenuItem_Click" />
+                </ContextMenu>
+            </RichTextBox.ContextMenu>
             <!--Bindings are dynamicly added via ReadEditorSetting()-->
             <RichTextBox.CommandBindings>
                 <CommandBinding Command="{StaticResource PlayAndPause}" CanExecute="PlayAndPause_CanExecute" />

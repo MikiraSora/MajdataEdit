@@ -670,6 +670,62 @@ public partial class MainWindow : Window
 
     #region RichTextbox events
 
+    private void FumenContent_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var position = FumenContent.GetPositionFromPoint(e.GetPosition(FumenContent), true);
+        if (position == null)
+        {
+            fumenContentContextMenuRawPosition = null;
+            return;
+        }
+
+        fumenContentContextMenuRawPosition = GetRawFumenPosition(position);
+        if (IsTextPointerInCurrentFumenSelection(position)) return;
+
+        FumenContent.Focus();
+        FumenContent.Selection.Select(position, position);
+    }
+
+    private bool IsTextPointerInCurrentFumenSelection(TextPointer position)
+    {
+        var selection = FumenContent.Selection;
+        return !selection.IsEmpty &&
+               selection.Start.CompareTo(position) <= 0 &&
+               selection.End.CompareTo(position) >= 0;
+    }
+
+    private void FumenContentContextMenu_OnOpened(object sender, RoutedEventArgs e)
+    {
+        fumenContentContextMenuRawPosition ??= GetRawFumenPosition();
+        FumenContentJumpToCursorMenuItem.IsEnabled =
+            selectedDifficulty != -1 &&
+            !string.IsNullOrWhiteSpace(maidataDir) &&
+            fumenContentContextMenuRawPosition.HasValue;
+    }
+
+    private void FumenContentContextMenu_OnClosed(object sender, RoutedEventArgs e)
+    {
+        fumenContentContextMenuRawPosition = null;
+    }
+
+    private void FumenContentJumpToCursorMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (!fumenContentContextMenuRawPosition.HasValue ||
+            selectedDifficulty == -1 ||
+            string.IsNullOrWhiteSpace(maidataDir))
+            return;
+
+        var time = SimaiProcess.Serialize(GetRawFumenText(), fumenContentContextMenuRawPosition.Value);
+        if (isPlaying || Bass.BASS_ChannelIsActive(bgmStream) == BASSActive.BASS_ACTIVE_PLAYING)
+            TogglePause();
+
+        SetBgmPosition(time);
+        SimaiProcess.ClearNoteListPlayedState();
+        ghostCusorPositionTime = (float)time;
+        DrawWave();
+        sendSeekTo(time);
+    }
+
     private void FumenContent_SelectionChanged(object sender, RoutedEventArgs e)
     {
         NoteNowText.Content = "" + (

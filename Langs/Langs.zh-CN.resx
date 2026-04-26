@@ -503,4 +503,25 @@
   <data name="SyntaxWarning" xml:space="preserve">
     <value>[警告] 谱面应当以"E"结尾："{0}"({1}L,{2}C)</value>
   </data>
+  <data name="EditorContextMenuUndo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="EditorContextMenuRedo" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="EditorContextMenuCut" xml:space="preserve">
+    <value>剪切</value>
+  </data>
+  <data name="EditorContextMenuCopy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="EditorContextMenuPaste" xml:space="preserve">
+    <value>粘贴</value>
+  </data>
+  <data name="EditorContextMenuSelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="EditorContextMenuJumpToCursor" xml:space="preserve">
+    <value>跳转到光标位置</value>
+  </data>
 </root>

@@ -493,4 +493,25 @@ Click OK to start render.</value>
   <data name="SyntaxWarning" xml:space="preserve">
     <value>[Warning] The chart should end with "E" : "{0}"({1}L,{2}C)</value>
   </data>
+  <data name="EditorContextMenuUndo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="EditorContextMenuRedo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="EditorContextMenuCut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="EditorContextMenuCopy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="EditorContextMenuPaste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="EditorContextMenuSelectAll" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+  <data name="EditorContextMenuJumpToCursor" xml:space="preserve">
+    <value>Jump to cursor position</value>
+  </data>
 </root>

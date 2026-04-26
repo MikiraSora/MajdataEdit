@@ -523,4 +523,25 @@ Open Browser to download latest update of Majdata?</value>
   <data name="PlayMethodRandom" xml:space="preserve">
     <value>シミュレーション (ランダム)</value>
   </data>
+  <data name="EditorContextMenuUndo" xml:space="preserve">
+    <value>元に戻す</value>
+  </data>
+  <data name="EditorContextMenuRedo" xml:space="preserve">
+    <value>やり直し</value>
+  </data>
+  <data name="EditorContextMenuCut" xml:space="preserve">
+    <value>切り取り</value>
+  </data>
+  <data name="EditorContextMenuCopy" xml:space="preserve">
+    <value>コピー</value>
+  </data>
+  <data name="EditorContextMenuPaste" xml:space="preserve">
+    <value>貼り付け</value>
+  </data>
+  <data name="EditorContextMenuSelectAll" xml:space="preserve">
+    <value>すべて選択</value>
+  </data>
+  <data name="EditorContextMenuJumpToCursor" xml:space="preserve">
+    <value>カーソル位置へジャンプ</value>
+  </data>
 </root>
