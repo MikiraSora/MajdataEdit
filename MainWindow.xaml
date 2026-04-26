@@ -127,10 +127,17 @@
                 </TransformGroup>
             </Image.RenderTransform>
         </Image>
-        <CheckBox x:Name="FollowPlayCheck" Content="{lex:Loc TextFollow}" HorizontalAlignment="Left" Height="21"
-                  Margin="6,0,0,128" VerticalAlignment="Bottom" Width="87"
+        <CheckBox x:Name="FollowPlayCheck" Content="{lex:Loc TextFollow}" HorizontalAlignment="Left" Height="18"
+                  Margin="6,0,0,146" VerticalAlignment="Bottom" Width="87"
                   Foreground="{DynamicResource ButtonForeground}" HorizontalContentAlignment="Right"
                   Click="FollowPlayCheck_Click" Background="{DynamicResource ButtonsBackground}"
+                  Template="{DynamicResource DarkCheck}" Grid.Row="1" Grid.Column="1" />
+        <CheckBox x:Name="AutoPreviewUpdateCheck" Content="自动更新预览" HorizontalAlignment="Left" Height="18"
+                  Margin="2,0,0,128" VerticalAlignment="Bottom" Width="100"
+                  Foreground="{DynamicResource ButtonForeground}" HorizontalContentAlignment="Right"
+                  Checked="AutoPreviewUpdateCheck_CheckedChanged"
+                  Unchecked="AutoPreviewUpdateCheck_CheckedChanged"
+                  Background="{DynamicResource ButtonsBackground}"
                   Template="{DynamicResource DarkCheck}" Grid.Row="1" Grid.Column="1" />
         <RichTextBox x:Name="FumenContent"
                      Padding="0,5" FontFamily="Consolas"

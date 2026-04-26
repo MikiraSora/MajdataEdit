@@ -54,6 +54,9 @@ public partial class MainWindow : Window
 
         chartChangeTimer.Elapsed += ChartChangeTimer_Elapsed;
         chartChangeTimer.AutoReset = false;
+        autoPreviewUpdateTimer.Elapsed += AutoPreviewUpdateTimer_Elapsed;
+        autoPreviewUpdateTimer.AutoReset = true;
+        autoPreviewUpdateTimer.Start();
         currentTimeRefreshTimer.Elapsed += CurrentTimeRefreshTimer_Elapsed;
         currentTimeRefreshTimer.Start();
         visualEffectRefreshTimer.Elapsed += VisualEffectRefreshTimer_Elapsed;
@@ -122,6 +125,7 @@ public partial class MainWindow : Window
         }
 
         currentTimeRefreshTimer.Stop();
+        autoPreviewUpdateTimer.Stop();
         visualEffectRefreshTimer.Stop();
 
         soundSetting.Close();
@@ -641,6 +645,12 @@ public partial class MainWindow : Window
 
     private void FollowPlayCheck_Click(object sender, RoutedEventArgs e)
     {
+        FumenContent.Focus();
+    }
+
+    private void AutoPreviewUpdateCheck_CheckedChanged(object sender, RoutedEventArgs e)
+    {
+        lastAutoPreviewWaveTime = null;
         FumenContent.Focus();
     }
 

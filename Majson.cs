@@ -60,7 +60,8 @@ internal enum EditorControlMethod
     OpStart,
     Pause,
     Continue,
-    Record
+    Record,
+    SeekTo
 }
 
 //this setting is per maidata

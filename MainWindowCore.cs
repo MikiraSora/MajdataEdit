@@ -52,7 +52,9 @@ public partial class MainWindow : Window
     //float[] wavedBs;
     private readonly short[][] waveRaws = new short[3][];
     public Timer chartChangeTimer = new(1000); // 谱面变更延迟解析]\
+    private readonly Timer autoPreviewUpdateTimer = new(1000);
     private readonly Timer currentTimeRefreshTimer = new(100);
+    private const double AutoPreviewUpdateTimeTolerance = 0.0001;
 
     public DiscordRpcClient DCRPCclient = new("1068882546932326481");
 
@@ -68,6 +70,7 @@ public partial class MainWindow : Window
     private bool isSaved = true;
     private EditorControlMethod lastEditorState;
     private TextSelection? lastFindPosition;
+    private double? lastAutoPreviewWaveTime;
 
     private double lastMousePointX; //Used for drag scroll
 
@@ -144,7 +147,8 @@ public partial class MainWindow : Window
         {
             var pointer = FumenContent.Document.Blocks.ToList()[last.RawTextPositionY].ContentStart
             .GetPositionAtOffset(last.RawTextPositionX);
-            FumenContent.Selection.Select(pointer, pointer);
+            if (pointer != null)
+                FumenContent.Selection.Select(pointer, pointer);
         }
     }
 
@@ -608,6 +612,38 @@ public partial class MainWindow : Window
         );
     }
 
+    private void AutoPreviewUpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (AutoPreviewUpdateCheck.IsChecked != true)
+            {
+                lastAutoPreviewWaveTime = null;
+                return;
+            }
+
+            if (selectedDifficulty == -1 || string.IsNullOrWhiteSpace(maidataDir) || isPlaying)
+            {
+                lastAutoPreviewWaveTime = null;
+                return;
+            }
+
+            var previewTime = GetWaveScrollTime();
+            if (!lastAutoPreviewWaveTime.HasValue)
+            {
+                lastAutoPreviewWaveTime = previewTime;
+                return;
+            }
+
+            if (Math.Abs(previewTime - lastAutoPreviewWaveTime.Value) <= AutoPreviewUpdateTimeTolerance)
+                return;
+
+            lastAutoPreviewWaveTime = previewTime;
+            ghostCusorPositionTime = (float)previewTime;
+            sendSeekTo(previewTime);
+        });
+    }
+
     private void DrawFFT()
     {
         Dispatcher.InvokeAsync(() =>
@@ -947,9 +983,14 @@ public partial class MainWindow : Window
         UpdateTimeDisplay();
     }
 
+    private double GetWaveScrollTime()
+    {
+        return Bass.BASS_ChannelBytes2Seconds(bgmStream, Bass.BASS_ChannelGetPosition(bgmStream));
+    }
+
     private void UpdateTimeDisplay()
     {
-        var currentPlayTime = Bass.BASS_ChannelBytes2Seconds(bgmStream, Bass.BASS_ChannelGetPosition(bgmStream));
+        var currentPlayTime = GetWaveScrollTime();
         var minute = (int)currentPlayTime / 60;
         double second = (int)(currentPlayTime - 60 * minute);
         Dispatcher.Invoke(() => { TimeLabel.Content = string.Format("{0}:{1:00}", minute, second); });
@@ -1223,6 +1264,51 @@ public partial class MainWindow : Window
         }
 
         lastEditorState = EditorControlMethod.Start;
+        return true;
+    }
+
+    private bool sendSeekTo(double editorCurrentTime)
+    {
+        var jsonStruct = new Majson();
+        jsonStruct.timingList.AddRange(SimaiProcess.notelist);
+        jsonStruct.title = SimaiProcess.title!;
+        jsonStruct.artist = SimaiProcess.artist!;
+        jsonStruct.level = SimaiProcess.levels[selectedDifficulty];
+        jsonStruct.designer = SimaiProcess.designer!;
+        jsonStruct.difficulty = SimaiProcess.GetDifficultyText(selectedDifficulty);
+        jsonStruct.diffNum = selectedDifficulty;
+
+        var json = JsonConvert.SerializeObject(jsonStruct);
+        var path = maidataDir + "/majdata.json";
+        File.WriteAllText(path, json);
+
+        var request = new EditRequestjson();
+        request.control = EditorControlMethod.SeekTo;
+
+        Dispatcher.Invoke(() =>
+        {
+            request.jsonPath = path;
+            request.startAt = TimeSpan.FromSeconds(editorCurrentTime).Ticks;
+            request.startTime = (float)editorCurrentTime;
+            // request.playSpeed = float.Parse(ViewerSpeed.Text);
+            // 将maimaiDX速度换算为View中的单位速度 MajSpeed = 107.25 / (71.4184491 * (MaiSpeed + 0.9975) ^ -0.985558604)
+            request.noteSpeed = editorSetting!.playSpeed;
+            request.touchSpeed = editorSetting!.touchSpeed;
+            request.backgroundCover = editorSetting!.backgroundCover;
+            request.comboStatusType = editorSetting!.comboStatusType;
+            request.audioSpeed = GetPlaybackSpeed();
+            request.smoothSlideAnime = editorSetting!.SmoothSlideAnime;
+            request.editorPlayMethod = editorSetting.editorPlayMethod;
+        });
+
+        json = JsonConvert.SerializeObject(request);
+        var response = WebControl.RequestPOST("http://localhost:8013/", json);
+        if (response == "ERROR")
+        {
+            MessageBox.Show(GetLocalizedString("PortClear"));
+            return false;
+        }
+
         return true;
     }
 
