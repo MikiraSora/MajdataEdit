@@ -38,7 +38,7 @@ public sealed class SimaiChartConverter
         { "w", 13 }
     };
 
-    public string ConvertChartToMa2Content(string chartContent, double shiftTime, float? fallbackWholeBpm = null)
+    public string ConvertChartToMa2Content(string chartContent, float? fallbackWholeBpm = null)
     {
         if (string.IsNullOrWhiteSpace(chartContent))
         {
@@ -70,21 +70,18 @@ public sealed class SimaiChartConverter
 
         var currentBpmBaseGrid = 0L;
         var currentBpmBaseAudioTime = 0d;
-        var shiftTimeGrid = 0L;
 
         long CalculateGrid(double audioTimeInSecond)
         {
             var d = audioTimeInSecond - currentBpmBaseAudioTime;
             if (d == 0)
             {
-                return currentBpmBaseGrid + shiftTimeGrid;
+                return currentBpmBaseGrid;
             }
 
             var totalGrid = Math.Round(d * (Resolution * currentBpm) / 240d);
-            return currentBpmBaseGrid + (long)totalGrid + shiftTimeGrid;
+            return currentBpmBaseGrid + (long)totalGrid;
         }
-
-        shiftTimeGrid = CalculateGrid(shiftTime);
 
         var maxBpm = timingPoints.Max(x => x.Bpm);
         var minBpm = timingPoints.Min(x => x.Bpm);
@@ -103,10 +100,17 @@ public sealed class SimaiChartConverter
         compositeOutput.AppendLine("MET\t0\t0\t4\t4");
         compositeOutput.AppendLine();
 
-        static void FormatGrid(long time, out long unit, out long grid)
+        // soflanGroup -> totalGrid -> speed
+        var hSpeedListMap = new Dictionary<int, Dictionary<long, float>>();
+
+        var lastHSpeedMap = new Dictionary<int, float>();
+        float getLastHSpeed(int soflanGroup) => lastHSpeedMap.GetValueOrDefault(soflanGroup, 1);
+        void setLastHSpeed(int soflanGroup, float lastHSpeed) => lastHSpeedMap[soflanGroup] = lastHSpeed;
+
+        static void FormatGrid(long totalGrid, out long unit, out long grid)
         {
-            unit = time / Resolution;
-            grid = time % Resolution;
+            unit = totalGrid / Resolution;
+            grid = totalGrid % Resolution;
         }
 
         var noteStatMap = new Dictionary<string, int>();
@@ -125,7 +129,17 @@ public sealed class SimaiChartConverter
                 currentBpm = timingPoint.Bpm;
                 currentBpmBaseAudioTime = curTime;
                 currentBpmBaseGrid = currentTotalGrid;
-                shiftTimeGrid = 0;
+            }
+
+            var soflanGroup = timingPoint.SoflanGroup;
+            var prevHSpeed = getLastHSpeed(soflanGroup);
+            if (Math.Abs(timingPoint.HSpeed - prevHSpeed) > float.Epsilon)
+            {
+                if (!hSpeedListMap.TryGetValue(soflanGroup, out var speedMap))
+                    hSpeedListMap[soflanGroup] = speedMap = new Dictionary<long, float>();
+                speedMap[currentTotalGrid] = timingPoint.HSpeed;
+
+                setLastHSpeed(soflanGroup, timingPoint.HSpeed);
             }
 
             foreach (var note in timingPoint.Notes)
@@ -255,6 +269,40 @@ public sealed class SimaiChartConverter
             }
         }
 
+        //generate Soflan
+        compositeOutput.AppendLine();
+        var lastNoteTotalGrid = CalculateGrid(timingPoints.Max(x => x.Timing));
+        foreach (var pair1 in hSpeedListMap)
+        {
+            var soflanGroup = pair1.Key;
+            var speedList = pair1.Value.OrderBy(x => x.Key).ToList();
+
+            for (int i = 0; i < speedList.Count - 1; i++)
+            {
+                var curSpeedPoint = speedList[i];
+                var nextSpeedPoint = speedList[i + 1];
+
+                var totalGrid = curSpeedPoint.Key;
+                var speed = curSpeedPoint.Value;
+                FormatGrid(totalGrid, out var unit, out var grid);
+
+                var duration = nextSpeedPoint.Key - curSpeedPoint.Key;
+
+                compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{soflanGroup}");
+            }
+            {
+                var lastSpeedPoint = speedList[^1];
+
+                var totalGrid = lastSpeedPoint.Key;
+                var speed = lastSpeedPoint.Value;
+                FormatGrid(totalGrid, out var unit, out var grid);
+
+                var duration = lastNoteTotalGrid + 1 - lastSpeedPoint.Key;
+
+                compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{soflanGroup}");
+            }
+        }
+
         notesOutput.AppendLine();
 
         var totalNotes = 0;
@@ -331,13 +379,12 @@ public sealed class SimaiChartConverter
     public IReadOnlyList<Ma2ExportResult> ConvertSelectedCharts(
         IEnumerable<Ma2ExportChart> charts,
         string musicId6,
-        double shiftTime,
         float? fallbackWholeBpm = null)
     {
         var results = new List<Ma2ExportResult>();
         foreach (var chart in charts)
         {
-            var content = ConvertChartToMa2Content(chart.ChartContent, shiftTime, fallbackWholeBpm);
+            var content = ConvertChartToMa2Content(chart.ChartContent, fallbackWholeBpm);
             results.Add(new Ma2ExportResult(chart.DiffId, $"music{musicId6}_{chart.DiffId}.ma2", content));
         }
 
