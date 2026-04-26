@@ -151,7 +151,7 @@ public partial class MainWindow : Window
 
         if (SimaiProcess.notelist.LastOrDefault() is SimaiTimingPoint last && time >= last.Timing)
         {
-            var pointer = FumenContent.Document.Blocks.ToList()[last.RawTextPositionY].ContentStart
+            var pointer = FumenContent.Document.Blocks.ElementAtOrDefault(last.RawTextPositionY)?.ContentStart?
             .GetPositionAtOffset(last.RawTextPositionX);
             if (pointer != null)
                 FumenContent.Selection.Select(pointer, pointer);
