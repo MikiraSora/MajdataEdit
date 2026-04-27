@@ -11,7 +11,7 @@ namespace MajdataEdit;
 internal static class ImportTimingFromOsuBeatmap
 {
     private const double TimeEpsilon = 0.0000001d;
-    private const double EventSnapEpsilon = 0.0000001d;
+    private const double EventSnapEpsilon = 0.001d;
     private const double BpmIntegerSnapEpsilon = 0.006d;
 
     public static string ImportTiming(string osuFilePath)
