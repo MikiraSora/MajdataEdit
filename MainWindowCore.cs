@@ -125,7 +125,7 @@ public partial class MainWindow : Window
 
     private long GetRawFumenPosition(TextPointer position)
     {
-        long pos = new TextRange(FumenContent.Document.ContentStart, position).Text.Replace("\r", "")
+        long pos = new TextRange(FumenContent.Document.ContentStart, position).Text
             .Length;
         return pos;
     }
@@ -1001,10 +1001,8 @@ public partial class MainWindow : Window
 
     private void UpdateTimeDisplay()
     {
-        var currentPlayTime = GetWaveScrollTime();
-        var minute = (int)currentPlayTime / 60;
-        double second = (int)(currentPlayTime - 60 * minute);
-        Dispatcher.Invoke(() => { TimeLabel.Content = string.Format("{0}:{1:00}", minute, second); });
+        var currentPlayTime = TimeSpan.FromSeconds(GetWaveScrollTime());
+        Dispatcher.Invoke(() => { TimeLabel.Content = string.Format("{0}:{1:00}", currentPlayTime.Minutes, currentPlayTime.Seconds); });
     }
 
     private void ScrollWave(double delta)
