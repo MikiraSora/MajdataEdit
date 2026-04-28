@@ -90,10 +90,15 @@ public partial class MainWindow : Window
     //*TEXTBOX CONTROL
     private string GetRawFumenText()
     {
-        var text = new TextRange(FumenContent.Document.ContentStart, FumenContent.Document.ContentEnd).Text!;
+        string text = "";
+        FumenContent.Dispatcher.Invoke(() =>
+        {
+            text = new TextRange(
+                FumenContent.Document.ContentStart,
+                FumenContent.Document.ContentEnd
+            ).Text;
+        });
 
-        text = text.Replace("\r", "");
-        // 亲爱的bbben在这里对text进行了Trim 引发了行位置不正确的BUG 谨此纪念（
         return text;
     }
 
