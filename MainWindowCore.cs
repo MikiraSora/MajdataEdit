@@ -813,6 +813,24 @@ public partial class MainWindow : Window
                 graphics.DrawLine(pen, x, 0, x, 15);
             }
 
+            //Draw BPM change labels
+            using var bpmLabelFont = new System.Drawing.Font("Segoe UI Emoji", 9f, System.Drawing.FontStyle.Regular);
+            using Brush bpmLabelBrush = new SolidBrush(Color.LightCyan);
+            using var bpmLabelStringFormat = new StringFormat
+            {
+                Alignment = StringAlignment.Near,
+                LineAlignment = StringAlignment.Near,
+                FormatFlags = StringFormatFlags.NoClip
+            };
+            for (var i = 0; i < bpmChangeValues.Count; i++)
+            {
+                var bpmTime = bpmChangeTimes[i];
+                if (bpmTime < currentTime - deltatime || bpmTime > currentTime + deltatime) continue;
+                var x = ((float)(bpmTime / step) - startindex) * linewidth;
+                var label = $"\uD83C\uDFB5 {bpmChangeValues[i].ToString("G9", CultureInfo.InvariantCulture)}";
+                graphics.DrawString(label, bpmLabelFont, bpmLabelBrush, new PointF(x, 0f), bpmLabelStringFormat);
+            }
+
             //Draw timing lines
             pen = new Pen(Color.White, 1);
             foreach (var note in SimaiProcess.timinglist)
