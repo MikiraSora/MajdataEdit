@@ -977,6 +977,54 @@ public partial class MainWindow : Window
                 }
             }
 
+            //Draw HSpeed change labels
+            var hSpeedChangeEvents = new List<(double Time, int SoflanGroup, float HSpeed)>();
+            var lastHSpeedBySoflanGroup = new Dictionary<int, float> { [0] = 1f };
+            foreach (var note in SimaiProcess.notelist)
+            {
+                if (note == null) break;
+
+                var soflanGroup = note.SoflanGroup;
+                var lastHSpeed = lastHSpeedBySoflanGroup.TryGetValue(soflanGroup, out var speed)
+                    ? speed
+                    : 1f;
+                if (Math.Abs(note.HSpeed - lastHSpeed) <= float.Epsilon) continue;
+
+                hSpeedChangeEvents.Add((note.Timing, soflanGroup, note.HSpeed));
+                lastHSpeedBySoflanGroup[soflanGroup] = note.HSpeed;
+            }
+
+            var shouldDrawSoflanGroup = hSpeedChangeEvents.Any(change => change.SoflanGroup != 0);
+            using var hSpeedLabelFont = new System.Drawing.Font("Consolas", 9f, System.Drawing.FontStyle.Bold);
+            using var hSpeedTrianglePen = new Pen(Color.Orange, 5);
+            using Brush hSpeedLabelBrush = new SolidBrush(Color.Orange);
+            using var hSpeedLabelStringFormat = new StringFormat
+            {
+                Alignment = StringAlignment.Near,
+                LineAlignment = StringAlignment.Near,
+                FormatFlags = StringFormatFlags.NoClip
+            };
+            var hSpeedTriangleBottom = height - 1f;
+            var hSpeedTriangleTop = Math.Max(0f, hSpeedTriangleBottom - 3.46f);
+            var hSpeedLabelY = Math.Max(0f, height - hSpeedLabelFont.GetHeight(graphics));
+            foreach (var changeEvent in hSpeedChangeEvents)
+            {
+                if (changeEvent.Time < currentTime - deltatime || changeEvent.Time > currentTime + deltatime) continue;
+
+                var x = ((float)(changeEvent.Time / step) - startindex) * linewidth;
+                var soflanGroupText = shouldDrawSoflanGroup ? $"[{changeEvent.SoflanGroup}]" : string.Empty;
+                var hSpeedText = changeEvent.HSpeed.ToString("0.###", CultureInfo.InvariantCulture);
+                var label = $"{soflanGroupText}{hSpeedText}x";
+                PointF[] hSpeedTrianglePoints =
+                {
+                    new(x - 2f, hSpeedTriangleBottom),
+                    new(x + 2f, hSpeedTriangleBottom),
+                    new(x, hSpeedTriangleTop)
+                };
+                graphics.DrawPolygon(hSpeedTrianglePen, hSpeedTrianglePoints);
+                graphics.DrawString(label, hSpeedLabelFont, hSpeedLabelBrush, new PointF(x + 2f, hSpeedLabelY), hSpeedLabelStringFormat);
+            }
+
             if (playStartTime - currentTime <= deltatime)
             {
                 //Draw play Start time
