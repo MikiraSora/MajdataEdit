@@ -490,6 +490,18 @@ Open Browser to download latest update of Majdata?</value>
     <value>When enabled, the Slide Track will disappear with the star instead of one judgment area after another.</value>
     <comment>Translation required</comment>
   </data>
+  <data name="DrawHSpeedChanges" xml:space="preserve">
+    <value>HSpeed markers を表示</value>
+    <comment>Translation required</comment>
+  </data>
+  <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
+    <value>空 content の HSpeed markers を表示</value>
+    <comment>Translation required</comment>
+  </data>
+  <data name="HSpeedInterpolationGrid" xml:space="preserve">
+    <value>HSpeed interpolation grid interval</value>
+    <comment>Translation required</comment>
+  </data>
   <data name="SyntaxCheckLevel1" xml:space="preserve">
     <value>無効にする</value>
   </data>

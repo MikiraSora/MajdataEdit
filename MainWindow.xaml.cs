@@ -286,7 +286,8 @@ public partial class MainWindow : Window
             exportResults = converter.ConvertSelectedCharts(
                 selectedOptions.Select(x => new Ma2ExportChart(x.DiffId, x.ChartContent)),
                 musicId6,
-                fallbackWholeBpm);
+                fallbackWholeBpm,
+                editorSetting?.HSpeedInterpolationGrid ?? 32);
         }
         catch (Exception ex)
         {

@@ -38,7 +38,7 @@ public sealed class SimaiChartConverter
         { "w", 13 }
     };
 
-    public string ConvertChartToMa2Content(string chartContent, float? fallbackWholeBpm = null)
+    public string ConvertChartToMa2Content(string chartContent, float? fallbackWholeBpm = null, int hSpeedInterpolationGrid = 32)
     {
         if (string.IsNullOrWhiteSpace(chartContent))
         {
@@ -46,7 +46,7 @@ public sealed class SimaiChartConverter
         }
 
         var preparedContent = PrepareChartContent(chartContent, fallbackWholeBpm);
-        var chart = SimaiParser.ParseChart(preparedContent.AsSpan(), 0, out _);
+        var chart = SimaiParser.ParseChart(preparedContent.AsSpan(), 0, hSpeedInterpolationGrid, out _);
         var allTimingPoints = chart.NoteTimings.ToArray();
         var timingPoints = allTimingPoints
             .Where(x => x.Notes.Length != 0)
@@ -380,12 +380,13 @@ public sealed class SimaiChartConverter
     public IReadOnlyList<Ma2ExportResult> ConvertSelectedCharts(
         IEnumerable<Ma2ExportChart> charts,
         string musicId6,
-        float? fallbackWholeBpm = null)
+        float? fallbackWholeBpm = null,
+        int hSpeedInterpolationGrid = 32)
     {
         var results = new List<Ma2ExportResult>();
         foreach (var chart in charts)
         {
-            var content = ConvertChartToMa2Content(chart.ChartContent, fallbackWholeBpm);
+            var content = ConvertChartToMa2Content(chart.ChartContent, fallbackWholeBpm, hSpeedInterpolationGrid);
             results.Add(new Ma2ExportResult(chart.DiffId, $"music{musicId6}_{chart.DiffId}.ma2", content));
         }
 

@@ -452,6 +452,15 @@
   <data name="SmoothSlideAnimeTooltip" xml:space="preserve">
     <value>启用后，Slide轨迹会随着星星消失，而不是以判定区为单位消失</value>
   </data>
+  <data name="DrawHSpeedChanges" xml:space="preserve">
+    <value>绘制变速标记</value>
+  </data>
+  <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
+    <value>绘制空内容变速标记</value>
+  </data>
+  <data name="HSpeedInterpolationGrid" xml:space="preserve">
+    <value>变速插值间隔 Grid</value>
+  </data>
   <data name="SyntaxCheckLevel1" xml:space="preserve">
     <value>禁用</value>
   </data>

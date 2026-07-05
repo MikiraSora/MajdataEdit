@@ -67,6 +67,9 @@ public partial class EditorSettingPanel : Window
         ChartRefreshDelay.Text = window.editorSetting.ChartRefreshDelay.ToString();
         AutoUpdate.IsChecked = window.editorSetting.AutoCheckUpdate;
         SmoothSlideAnime.IsChecked = window.editorSetting.SmoothSlideAnime;
+        DrawHSpeedChanges.IsChecked = window.editorSetting.DrawHSpeedChanges;
+        DrawEmptyHSpeedChanges.IsChecked = window.editorSetting.DrawEmptyHSpeedChanges;
+        HSpeedInterpolationGrid.Text = window.editorSetting.HSpeedInterpolationGrid.ToString();
         SyntaxCheckLevel.SelectedIndex = window.editorSetting.SyntaxCheckLevel;
     }
 
@@ -114,6 +117,9 @@ public partial class EditorSettingPanel : Window
         window.editorSetting!.ChartRefreshDelay = int.Parse(ChartRefreshDelay.Text);
         window.editorSetting!.AutoCheckUpdate = (bool) AutoUpdate.IsChecked!;
         window.editorSetting!.SmoothSlideAnime = (bool) SmoothSlideAnime.IsChecked!;
+        window.editorSetting!.DrawHSpeedChanges = (bool)DrawHSpeedChanges.IsChecked!;
+        window.editorSetting!.DrawEmptyHSpeedChanges = (bool)DrawEmptyHSpeedChanges.IsChecked!;
+        window.editorSetting!.HSpeedInterpolationGrid = Math.Max(1, int.Parse(HSpeedInterpolationGrid.Text));
         window.editorSetting!.editorPlayMethod = (EditorPlayMethod)PlayMethod.SelectedIndex;
         window.editorSetting!.SyntaxCheckLevel = SyntaxCheckLevel.SelectedIndex;
         // window.editorSetting.isComboEnabled = (bool) ComboDisplay.IsChecked!;
