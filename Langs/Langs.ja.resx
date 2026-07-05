@@ -498,6 +498,22 @@ Open Browser to download latest update of Majdata?</value>
     <value>空 content の HSpeed markers を表示</value>
     <comment>Translation required</comment>
   </data>
+  <data name="HSpeedDisplayGroupDistancePx" xml:space="preserve">
+    <value>HSpeed display group distance</value>
+    <comment>Translation required</comment>
+  </data>
+  <data name="HSpeedDisplayLineWidthPx" xml:space="preserve">
+    <value>HSpeed line width</value>
+    <comment>Translation required</comment>
+  </data>
+  <data name="HSpeedDisplayPointRadiusPx" xml:space="preserve">
+    <value>HSpeed point radius</value>
+    <comment>Translation required</comment>
+  </data>
+  <data name="HSpeedDisplayLabelFontSize" xml:space="preserve">
+    <value>HSpeed label font size</value>
+    <comment>Translation required</comment>
+  </data>
   <data name="HSpeedInterpolationGrid" xml:space="preserve">
     <value>HSpeed interpolation grid interval</value>
     <comment>Translation required</comment>

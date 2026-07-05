@@ -985,58 +985,7 @@ public partial class MainWindow : Window
 
             if (editorSetting?.DrawHSpeedChanges == true)
             {
-                //Draw HSpeed change labels
-                var hSpeedChangeEvents = new List<(double Time, int SoflanGroup, float HSpeed)>();
-                var lastHSpeedBySoflanGroup = new Dictionary<int, float> { [0] = 1f };
-                foreach (var note in SimaiProcess.notelist)
-                {
-                    if (note == null) break;
-
-                    var soflanGroup = note.SoflanGroup;
-                    var lastHSpeed = lastHSpeedBySoflanGroup.TryGetValue(soflanGroup, out var speed)
-                        ? speed
-                        : 1f;
-                    var isHSpeedChanged = Math.Abs(note.HSpeed - lastHSpeed) > float.Epsilon;
-                    if (isHSpeedChanged)
-                    {
-                        lastHSpeedBySoflanGroup[soflanGroup] = note.HSpeed;
-                    }
-                    if (!isHSpeedChanged) continue;
-                    if (!editorSetting.DrawEmptyHSpeedChanges && string.IsNullOrEmpty(note.RawContent)) continue;
-
-                    hSpeedChangeEvents.Add((note.Timing, soflanGroup, note.HSpeed));
-                }
-
-                var shouldDrawSoflanGroup = hSpeedChangeEvents.Any(change => change.SoflanGroup != 0);
-                using var hSpeedLabelFont = new System.Drawing.Font("Consolas", 9f, System.Drawing.FontStyle.Bold);
-                using var hSpeedTrianglePen = new Pen(Color.Orange, 5);
-                using Brush hSpeedLabelBrush = new SolidBrush(Color.Orange);
-                using var hSpeedLabelStringFormat = new StringFormat
-                {
-                    Alignment = StringAlignment.Near,
-                    LineAlignment = StringAlignment.Near,
-                    FormatFlags = StringFormatFlags.NoClip
-                };
-                var hSpeedTriangleBottom = height - 1f;
-                var hSpeedTriangleTop = Math.Max(0f, hSpeedTriangleBottom - 3.46f);
-                var hSpeedLabelY = Math.Max(0f, height - hSpeedLabelFont.GetHeight(graphics));
-                foreach (var changeEvent in hSpeedChangeEvents)
-                {
-                    if (changeEvent.Time < currentTime - deltatime || changeEvent.Time > currentTime + deltatime) continue;
-
-                    var x = ((float)(changeEvent.Time / step) - startindex) * linewidth;
-                    var soflanGroupText = shouldDrawSoflanGroup ? $"[{changeEvent.SoflanGroup}]" : string.Empty;
-                    var hSpeedText = changeEvent.HSpeed.ToString("0.###", CultureInfo.InvariantCulture);
-                    var label = $"{soflanGroupText}{hSpeedText}x";
-                    PointF[] hSpeedTrianglePoints =
-                    {
-                        new(x - 2f, hSpeedTriangleBottom),
-                        new(x + 2f, hSpeedTriangleBottom),
-                        new(x, hSpeedTriangleTop)
-                    };
-                    graphics.DrawPolygon(hSpeedTrianglePen, hSpeedTrianglePoints);
-                    graphics.DrawString(label, hSpeedLabelFont, hSpeedLabelBrush, new PointF(x + 2f, hSpeedLabelY), hSpeedLabelStringFormat);
-                }
+                DrawHSpeedChanges(graphics, width, height, currentTime, step, startindex, linewidth);
             }
 
             if (playStartTime - currentTime <= deltatime)
@@ -1067,6 +1016,598 @@ public partial class MainWindow : Window
             isDrawing = false;
         });
     }
+
+    private void DrawHSpeedChanges(Graphics graphics, int width, int height, double currentTime, double step, int startIndex, float lineWidth)
+    {
+        if (editorSetting == null)
+        {
+            return;
+        }
+
+        var groupDistancePx = Math.Clamp(editorSetting.HSpeedDisplayGroupDistancePx, 1, 200);
+        var hSpeedLineWidth = Math.Clamp(editorSetting.HSpeedDisplayLineWidthPx, 1, 8);
+        var pointRadius = Math.Clamp(editorSetting.HSpeedDisplayPointRadiusPx, 1, 8);
+        var labelFontSize = Math.Clamp(editorSetting.HSpeedDisplayLabelFontSize, 6, 18);
+        var visibleStartTime = currentTime - deltatime;
+        var visibleEndTime = currentTime + deltatime;
+        var hSpeedEvents = CollectVisibleHSpeedEvents(visibleStartTime, visibleEndTime, step, startIndex, lineWidth);
+        if (hSpeedEvents.Count == 0)
+        {
+            return;
+        }
+
+        var shouldDrawSoflanGroup = false;
+        for (var i = 0; i < hSpeedEvents.Count; i++)
+        {
+            if (hSpeedEvents[i].SoflanGroup != 0)
+            {
+                shouldDrawSoflanGroup = true;
+                break;
+            }
+        }
+
+        using var hSpeedLabelFont = new System.Drawing.Font("Consolas", labelFontSize, System.Drawing.FontStyle.Bold);
+        using var labelNearFormat = CreateHSpeedLabelFormat(StringAlignment.Near, StringAlignment.Near);
+        using var labelFarFormat = CreateHSpeedLabelFormat(StringAlignment.Far, StringAlignment.Near);
+        using var labelCenterFormat = CreateHSpeedLabelFormat(StringAlignment.Center, StringAlignment.Near);
+        using var pointOutlinePen = new Pen(Color.FromArgb(180, 0, 0, 0), 1f);
+        var labelRectangles = new List<RectangleF>();
+        var eventsByGroup = new Dictionary<int, List<HSpeedDisplayEvent>>();
+        for (var i = 0; i < hSpeedEvents.Count; i++)
+        {
+            var changeEvent = hSpeedEvents[i];
+            if (!eventsByGroup.TryGetValue(changeEvent.SoflanGroup, out var groupEvents))
+            {
+                groupEvents = new List<HSpeedDisplayEvent>();
+                eventsByGroup.Add(changeEvent.SoflanGroup, groupEvents);
+            }
+            groupEvents.Add(changeEvent);
+        }
+
+        var sortedGroups = new List<int>(eventsByGroup.Keys);
+        sortedGroups.Sort();
+        var groupOrderMap = new Dictionary<int, int>();
+        for (var i = 0; i < sortedGroups.Count; i++)
+        {
+            groupOrderMap[sortedGroups[i]] = i;
+        }
+
+        for (var groupIndex = 0; groupIndex < sortedGroups.Count; groupIndex++)
+        {
+            var soflanGroup = sortedGroups[groupIndex];
+            var groupEvents = eventsByGroup[soflanGroup];
+            groupEvents.Sort((left, right) => left.Time.CompareTo(right.Time));
+            var sequences = BuildHSpeedSequences(groupEvents, groupDistancePx);
+            var groupColor = GetHSpeedGroupColor(soflanGroup);
+            using var linePen = new Pen(Color.FromArgb(220, groupColor), hSpeedLineWidth)
+            {
+                DashStyle = DashStyle.Dash
+            };
+            using Brush pointBrush = new SolidBrush(groupColor);
+            using Brush labelBrush = new SolidBrush(groupColor);
+            using Brush shadowBrush = new SolidBrush(Color.FromArgb(180, 0, 0, 0));
+            var laneOffset = GetHSpeedLaneOffset(groupOrderMap[soflanGroup]);
+
+            for (var sequenceIndex = 0; sequenceIndex < sequences.Count; sequenceIndex++)
+            {
+                var sequence = sequences[sequenceIndex];
+                AssignHSpeedDisplayY(sequence, height, laneOffset);
+                if (sequence.Count >= 2)
+                {
+                    DrawHSpeedSequence(graphics, sequence, linePen, pointBrush, pointOutlinePen, pointRadius);
+                    DrawHSpeedSequenceLabels(graphics,
+                                             sequence,
+                                             hSpeedLabelFont,
+                                             labelBrush,
+                                             shadowBrush,
+                                             labelNearFormat,
+                                             labelFarFormat,
+                                             labelCenterFormat,
+                                             labelRectangles,
+                                             width,
+                                             height,
+                                             shouldDrawSoflanGroup);
+                }
+                else if (sequence.Count == 1)
+                {
+                    DrawIsolatedHSpeedEvent(graphics,
+                                            sequence[0],
+                                            linePen,
+                                            pointBrush,
+                                            pointOutlinePen,
+                                            labelBrush,
+                                            shadowBrush,
+                                            hSpeedLabelFont,
+                                            labelNearFormat,
+                                            labelFarFormat,
+                                            labelRectangles,
+                                            pointRadius,
+                                            width,
+                                            height,
+                                            shouldDrawSoflanGroup);
+                }
+            }
+        }
+    }
+
+    private List<HSpeedDisplayEvent> CollectVisibleHSpeedEvents(double visibleStartTime,
+                                                                double visibleEndTime,
+                                                                double step,
+                                                                int startIndex,
+                                                                float lineWidth)
+    {
+        var events = new List<HSpeedDisplayEvent>();
+        var lastHSpeedBySoflanGroup = new Dictionary<int, float> { [0] = 1f };
+        foreach (var note in SimaiProcess.notelist)
+        {
+            if (note == null) break;
+
+            var soflanGroup = note.SoflanGroup;
+            var lastHSpeed = lastHSpeedBySoflanGroup.TryGetValue(soflanGroup, out var speed)
+                ? speed
+                : 1f;
+            var isHSpeedChanged = Math.Abs(note.HSpeed - lastHSpeed) > float.Epsilon;
+            if (isHSpeedChanged)
+            {
+                lastHSpeedBySoflanGroup[soflanGroup] = note.HSpeed;
+            }
+            if (!isHSpeedChanged) continue;
+            if (note.Timing < visibleStartTime || note.Timing > visibleEndTime) continue;
+            if (editorSetting?.DrawEmptyHSpeedChanges != true && string.IsNullOrEmpty(note.RawContent)) continue;
+
+            var x = ((float)(note.Timing / step) - startIndex) * lineWidth;
+            events.Add(new HSpeedDisplayEvent(note.Timing, soflanGroup, note.HSpeed, x, 0f));
+        }
+
+        return events;
+    }
+
+    private static List<List<HSpeedDisplayEvent>> BuildHSpeedSequences(List<HSpeedDisplayEvent> events, int groupDistancePx)
+    {
+        var sequences = new List<List<HSpeedDisplayEvent>>();
+        if (events.Count == 0)
+        {
+            return sequences;
+        }
+
+        var currentSequence = new List<HSpeedDisplayEvent> { events[0] };
+        for (var i = 1; i < events.Count; i++)
+        {
+            if (Math.Abs(events[i].X - events[i - 1].X) <= groupDistancePx)
+            {
+                currentSequence.Add(events[i]);
+                continue;
+            }
+
+            sequences.Add(currentSequence);
+            currentSequence = new List<HSpeedDisplayEvent> { events[i] };
+        }
+        sequences.Add(currentSequence);
+        return sequences;
+    }
+
+    private static void AssignHSpeedDisplayY(List<HSpeedDisplayEvent> sequence, int height, float laneOffset)
+    {
+        if (sequence.Count == 0)
+        {
+            return;
+        }
+
+        var maxY = height / 3f;
+        var minY = Math.Max(maxY, height - 8f);
+        var minSpeed = sequence[0].HSpeed;
+        var maxSpeed = sequence[0].HSpeed;
+        for (var i = 1; i < sequence.Count; i++)
+        {
+            minSpeed = Math.Min(minSpeed, sequence[i].HSpeed);
+            maxSpeed = Math.Max(maxSpeed, sequence[i].HSpeed);
+        }
+
+        if (Math.Abs(maxSpeed - minSpeed) <= float.Epsilon)
+        {
+            var flatY = ClampFloat(height * 2f / 3f + laneOffset, maxY, minY);
+            for (var i = 0; i < sequence.Count; i++)
+            {
+                sequence[i] = sequence[i] with { Y = flatY };
+            }
+            return;
+        }
+
+        for (var i = 0; i < sequence.Count; i++)
+        {
+            var progress = (sequence[i].HSpeed - minSpeed) / (maxSpeed - minSpeed);
+            var y = minY - (minY - maxY) * progress;
+            sequence[i] = sequence[i] with { Y = ClampFloat(y + laneOffset, maxY, minY) };
+        }
+    }
+
+    private static void DrawHSpeedSequence(Graphics graphics,
+                                           List<HSpeedDisplayEvent> sequence,
+                                           Pen linePen,
+                                           Brush pointBrush,
+                                           Pen pointOutlinePen,
+                                           int pointRadius)
+    {
+        var points = new PointF[sequence.Count];
+        for (var i = 0; i < sequence.Count; i++)
+        {
+            points[i] = new PointF(sequence[i].X, sequence[i].Y);
+        }
+        graphics.DrawLines(linePen, points);
+        for (var i = 0; i < sequence.Count; i++)
+        {
+            DrawHSpeedPoint(graphics, sequence[i], pointBrush, pointOutlinePen, pointRadius);
+        }
+    }
+
+    private static void DrawIsolatedHSpeedEvent(Graphics graphics,
+                                                HSpeedDisplayEvent hSpeedEvent,
+                                                Pen linePen,
+                                                Brush pointBrush,
+                                                Pen pointOutlinePen,
+                                                Brush labelBrush,
+                                                Brush shadowBrush,
+                                                System.Drawing.Font labelFont,
+                                                StringFormat labelNearFormat,
+                                                StringFormat labelFarFormat,
+                                                List<RectangleF> labelRectangles,
+                                                int pointRadius,
+                                                int width,
+                                                int height,
+                                                bool shouldDrawSoflanGroup)
+    {
+        graphics.DrawLine(linePen, hSpeedEvent.X - 6f, hSpeedEvent.Y, hSpeedEvent.X + 6f, hSpeedEvent.Y);
+        DrawHSpeedPoint(graphics, hSpeedEvent, pointBrush, pointOutlinePen, pointRadius);
+
+        var label = FormatHSpeedLabel(hSpeedEvent, shouldDrawSoflanGroup);
+        var labelSize = graphics.MeasureString(label, labelFont);
+        var labelPoint = new PointF(hSpeedEvent.X + pointRadius + 2f, hSpeedEvent.Y - labelSize.Height / 2f);
+        var labelBounds = GetClampedLabelBounds(labelPoint, labelSize, width, height);
+        if (Math.Abs(labelBounds.X - hSpeedEvent.X) <= pointRadius + 1f)
+        {
+            labelPoint = new PointF(hSpeedEvent.X - pointRadius - 2f - labelSize.Width, hSpeedEvent.Y - labelSize.Height / 2f);
+            labelBounds = GetClampedLabelBounds(labelPoint, labelSize, width, height);
+        }
+        TryDrawHSpeedLabel(graphics,
+                           label,
+                           labelFont,
+                           labelBrush,
+                           shadowBrush,
+                           labelNearFormat,
+                           labelRectangles,
+                           labelBounds,
+                           width,
+                           height,
+                           true,
+                           out _);
+    }
+
+    private static void DrawHSpeedSequenceLabels(Graphics graphics,
+                                                 List<HSpeedDisplayEvent> sequence,
+                                                 System.Drawing.Font labelFont,
+                                                 Brush labelBrush,
+                                                 Brush shadowBrush,
+                                                 StringFormat labelNearFormat,
+                                                 StringFormat labelFarFormat,
+                                                 StringFormat labelCenterFormat,
+                                                 List<RectangleF> labelRectangles,
+                                                 int width,
+                                                 int height,
+                                                 bool shouldDrawSoflanGroup)
+    {
+        if (sequence.Count == 0)
+        {
+            return;
+        }
+
+        var localEndpointRectangles = new List<RectangleF>();
+        var left = sequence[0];
+        var right = sequence[sequence.Count - 1];
+        var leftLabel = FormatHSpeedLabel(left, shouldDrawSoflanGroup);
+        var leftBounds = GetEndpointLabelBounds(graphics, left, labelFont, width, height, shouldDrawSoflanGroup, true);
+        if (TryDrawHSpeedLabel(graphics, leftLabel, labelFont, labelBrush, shadowBrush, labelFarFormat, labelRectangles, leftBounds, width, height, true, out var placedLeftBounds))
+        {
+            localEndpointRectangles.Add(placedLeftBounds);
+        }
+
+        var rightLabel = FormatHSpeedLabel(right, shouldDrawSoflanGroup);
+        var rightBounds = GetEndpointLabelBounds(graphics, right, labelFont, width, height, shouldDrawSoflanGroup, false);
+        if (TryDrawHSpeedLabel(graphics, rightLabel, labelFont, labelBrush, shadowBrush, labelNearFormat, labelRectangles, rightBounds, width, height, true, out var placedRightBounds))
+        {
+            localEndpointRectangles.Add(placedRightBounds);
+        }
+
+        if (sequence.Count <= 2)
+        {
+            return;
+        }
+
+        var midpointX = (left.X + right.X) / 2f;
+        var maxIndex = FindInternalExtremaIndex(sequence, true, midpointX);
+        var minIndex = FindInternalExtremaIndex(sequence, false, midpointX);
+        var extremaLabels = new List<HSpeedLabelCandidate>();
+        if (maxIndex != -1)
+        {
+            extremaLabels.Add(CreateExtremaLabelCandidate(graphics, sequence[maxIndex], labelFont, width, height, shouldDrawSoflanGroup, true));
+        }
+        if (minIndex != -1 && minIndex != maxIndex)
+        {
+            extremaLabels.Add(CreateExtremaLabelCandidate(graphics, sequence[minIndex], labelFont, width, height, shouldDrawSoflanGroup, false));
+        }
+        if (extremaLabels.Count == 2 && RectanglesOverlap(extremaLabels[0].Bounds, extremaLabels[1].Bounds))
+        {
+            var firstDelta = Math.Abs(extremaLabels[0].Event.HSpeed - left.HSpeed);
+            var secondDelta = Math.Abs(extremaLabels[1].Event.HSpeed - left.HSpeed);
+            if (secondDelta > firstDelta)
+            {
+                extremaLabels.RemoveAt(0);
+            }
+            else
+            {
+                extremaLabels.RemoveAt(1);
+            }
+        }
+
+        for (var i = 0; i < extremaLabels.Count; i++)
+        {
+            var candidate = extremaLabels[i];
+            var overlapsEndpoint = false;
+            for (var endpointIndex = 0; endpointIndex < localEndpointRectangles.Count; endpointIndex++)
+            {
+                if (RectanglesOverlap(candidate.Bounds, localEndpointRectangles[endpointIndex]))
+                {
+                    overlapsEndpoint = true;
+                    break;
+                }
+            }
+            if (overlapsEndpoint)
+            {
+                continue;
+            }
+
+            TryDrawHSpeedLabel(graphics,
+                               candidate.Text,
+                               labelFont,
+                               labelBrush,
+                               shadowBrush,
+                               labelCenterFormat,
+                               labelRectangles,
+                               candidate.Bounds,
+                               width,
+                               height,
+                               true,
+                               out _);
+        }
+    }
+
+    private static HSpeedLabelCandidate CreateExtremaLabelCandidate(Graphics graphics,
+                                                                    HSpeedDisplayEvent hSpeedEvent,
+                                                                    System.Drawing.Font labelFont,
+                                                                    int width,
+                                                                    int height,
+                                                                    bool shouldDrawSoflanGroup,
+                                                                    bool isMaximum)
+    {
+        var label = FormatHSpeedLabel(hSpeedEvent, shouldDrawSoflanGroup);
+        var labelSize = graphics.MeasureString(label, labelFont);
+        var y = isMaximum
+            ? hSpeedEvent.Y - labelSize.Height - 2f
+            : hSpeedEvent.Y + 2f;
+        var bounds = GetClampedLabelBounds(new PointF(hSpeedEvent.X - labelSize.Width / 2f, y), labelSize, width, height);
+        return new HSpeedLabelCandidate(hSpeedEvent, label, bounds);
+    }
+
+    private static RectangleF GetEndpointLabelBounds(Graphics graphics,
+                                                     HSpeedDisplayEvent hSpeedEvent,
+                                                     System.Drawing.Font labelFont,
+                                                     int width,
+                                                     int height,
+                                                     bool shouldDrawSoflanGroup,
+                                                     bool isLeftEndpoint)
+    {
+        var label = FormatHSpeedLabel(hSpeedEvent, shouldDrawSoflanGroup);
+        var labelSize = graphics.MeasureString(label, labelFont);
+        var x = isLeftEndpoint
+            ? hSpeedEvent.X - labelSize.Width - 2f
+            : hSpeedEvent.X + 2f;
+        var y = hSpeedEvent.Y - labelSize.Height / 2f;
+        return GetClampedLabelBounds(new PointF(x, y), labelSize, width, height);
+    }
+
+    private static bool TryDrawHSpeedLabel(Graphics graphics,
+                                           string label,
+                                           System.Drawing.Font labelFont,
+                                           Brush labelBrush,
+                                           Brush shadowBrush,
+                                           StringFormat labelFormat,
+                                           List<RectangleF> labelRectangles,
+                                           RectangleF labelBounds,
+                                           int width,
+                                           int height,
+                                           bool allowVerticalShift,
+                                           out RectangleF placedBounds)
+    {
+        if (TryPlaceHSpeedLabel(labelBounds, labelRectangles, out placedBounds))
+        {
+            DrawHSpeedLabel(graphics, label, labelFont, labelBrush, shadowBrush, labelFormat, placedBounds);
+            labelRectangles.Add(placedBounds);
+            return true;
+        }
+        if (!allowVerticalShift)
+        {
+            return false;
+        }
+
+        var shiftedUp = GetClampedLabelBounds(new PointF(labelBounds.X, labelBounds.Y - labelBounds.Height), labelBounds.Size, width, height);
+        if (TryPlaceHSpeedLabel(shiftedUp, labelRectangles, out placedBounds))
+        {
+            DrawHSpeedLabel(graphics, label, labelFont, labelBrush, shadowBrush, labelFormat, placedBounds);
+            labelRectangles.Add(placedBounds);
+            return true;
+        }
+
+        var shiftedDown = GetClampedLabelBounds(new PointF(labelBounds.X, labelBounds.Y + labelBounds.Height), labelBounds.Size, width, height);
+        if (!TryPlaceHSpeedLabel(shiftedDown, labelRectangles, out placedBounds))
+        {
+            placedBounds = default;
+            return false;
+        }
+        DrawHSpeedLabel(graphics, label, labelFont, labelBrush, shadowBrush, labelFormat, placedBounds);
+        labelRectangles.Add(placedBounds);
+        return true;
+    }
+
+    private static void DrawHSpeedLabel(Graphics graphics,
+                                        string label,
+                                        System.Drawing.Font labelFont,
+                                        Brush labelBrush,
+                                        Brush shadowBrush,
+                                        StringFormat labelFormat,
+                                        RectangleF labelBounds)
+    {
+        var shadowBounds = labelBounds;
+        shadowBounds.Offset(1f, 1f);
+        graphics.DrawString(label, labelFont, shadowBrush, shadowBounds, labelFormat);
+        graphics.DrawString(label, labelFont, labelBrush, labelBounds, labelFormat);
+    }
+
+    private static bool TryPlaceHSpeedLabel(RectangleF labelBounds, List<RectangleF> labelRectangles, out RectangleF placedBounds)
+    {
+        for (var i = 0; i < labelRectangles.Count; i++)
+        {
+            if (RectanglesOverlap(labelBounds, labelRectangles[i]))
+            {
+                placedBounds = default;
+                return false;
+            }
+        }
+
+        placedBounds = labelBounds;
+        return true;
+    }
+
+    private static int FindInternalExtremaIndex(List<HSpeedDisplayEvent> sequence, bool findMaximum, float midpointX)
+    {
+        if (sequence.Count <= 2)
+        {
+            return -1;
+        }
+
+        var endpointValue = findMaximum
+            ? Math.Max(sequence[0].HSpeed, sequence[sequence.Count - 1].HSpeed)
+            : Math.Min(sequence[0].HSpeed, sequence[sequence.Count - 1].HSpeed);
+        var bestValue = sequence[1].HSpeed;
+        for (var i = 2; i < sequence.Count - 1; i++)
+        {
+            bestValue = findMaximum
+                ? Math.Max(bestValue, sequence[i].HSpeed)
+                : Math.Min(bestValue, sequence[i].HSpeed);
+        }
+        if (findMaximum && bestValue <= endpointValue) return -1;
+        if (!findMaximum && bestValue >= endpointValue) return -1;
+
+        var bestIndex = -1;
+        var bestDistance = float.MaxValue;
+        for (var i = 1; i < sequence.Count - 1; i++)
+        {
+            if (Math.Abs(sequence[i].HSpeed - bestValue) > float.Epsilon)
+            {
+                continue;
+            }
+
+            var distance = Math.Abs(sequence[i].X - midpointX);
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+            bestIndex = i;
+            bestDistance = distance;
+        }
+
+        return bestIndex;
+    }
+
+    private static void DrawHSpeedPoint(Graphics graphics, HSpeedDisplayEvent hSpeedEvent, Brush pointBrush, Pen pointOutlinePen, int pointRadius)
+    {
+        var diameter = pointRadius * 2f;
+        var bounds = new RectangleF(hSpeedEvent.X - pointRadius, hSpeedEvent.Y - pointRadius, diameter, diameter);
+        graphics.FillEllipse(pointBrush, bounds);
+        graphics.DrawEllipse(pointOutlinePen, bounds);
+    }
+
+    private static string FormatHSpeedLabel(HSpeedDisplayEvent hSpeedEvent, bool shouldDrawSoflanGroup)
+    {
+        var soflanGroupText = shouldDrawSoflanGroup ? $"[{hSpeedEvent.SoflanGroup}]" : string.Empty;
+        var hSpeedText = hSpeedEvent.HSpeed.ToString("0.###", CultureInfo.InvariantCulture);
+        return $"{soflanGroupText}{hSpeedText}x";
+    }
+
+    private static StringFormat CreateHSpeedLabelFormat(StringAlignment alignment, StringAlignment lineAlignment)
+    {
+        return new StringFormat
+        {
+            Alignment = alignment,
+            LineAlignment = lineAlignment,
+            FormatFlags = StringFormatFlags.NoClip
+        };
+    }
+
+    private static RectangleF GetClampedLabelBounds(PointF location, SizeF size, int width, int height)
+    {
+        var x = ClampFloat(location.X, 0f, Math.Max(0f, width - size.Width));
+        var y = ClampFloat(location.Y, 0f, Math.Max(0f, height - size.Height));
+        return new RectangleF(x, y, size.Width, size.Height);
+    }
+
+    private static bool RectanglesOverlap(RectangleF left, RectangleF right)
+    {
+        return left.Left < right.Right &&
+               left.Right > right.Left &&
+               left.Top < right.Bottom &&
+               left.Bottom > right.Top;
+    }
+
+    private static float ClampFloat(float value, float min, float max)
+    {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    private static float GetHSpeedLaneOffset(int groupOrder)
+    {
+        if (groupOrder == 0)
+        {
+            return 0f;
+        }
+
+        var lane = (groupOrder + 1) / 2;
+        var sign = groupOrder % 2 == 1 ? -1f : 1f;
+        return sign * lane * 5f;
+    }
+
+    private static Color GetHSpeedGroupColor(int soflanGroup)
+    {
+        Color[] palette =
+        {
+            Color.Orange,
+            Color.DeepSkyBlue,
+            Color.Lime,
+            Color.Magenta,
+            Color.Gold,
+            Color.Cyan,
+            Color.HotPink,
+            Color.SpringGreen,
+            Color.Tomato,
+            Color.MediumOrchid
+        };
+        var index = Math.Abs(soflanGroup) % palette.Length;
+        return palette[index];
+    }
+
+    private readonly record struct HSpeedDisplayEvent(double Time, int SoflanGroup, float HSpeed, float X, float Y);
+
+    private readonly record struct HSpeedLabelCandidate(HSpeedDisplayEvent Event, string Text, RectangleF Bounds);
 
     // This update less frequently. set the time text.
     private void CurrentTimeRefreshTimer_Elapsed(object? sender, ElapsedEventArgs e)

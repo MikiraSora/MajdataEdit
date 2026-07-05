@@ -458,6 +458,18 @@
   <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
     <value>绘制空内容变速标记</value>
   </data>
+  <data name="HSpeedDisplayGroupDistancePx" xml:space="preserve">
+    <value>变速显示聚合距离</value>
+  </data>
+  <data name="HSpeedDisplayLineWidthPx" xml:space="preserve">
+    <value>变速线宽</value>
+  </data>
+  <data name="HSpeedDisplayPointRadiusPx" xml:space="preserve">
+    <value>变速点半径</value>
+  </data>
+  <data name="HSpeedDisplayLabelFontSize" xml:space="preserve">
+    <value>变速标签字号</value>
+  </data>
   <data name="HSpeedInterpolationGrid" xml:space="preserve">
     <value>变速插值间隔 Grid</value>
   </data>

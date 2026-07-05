@@ -466,6 +466,18 @@ Click OK to start render.</value>
   <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
     <value>Draw empty-content HSpeed markers</value>
   </data>
+  <data name="HSpeedDisplayGroupDistancePx" xml:space="preserve">
+    <value>HSpeed display group distance</value>
+  </data>
+  <data name="HSpeedDisplayLineWidthPx" xml:space="preserve">
+    <value>HSpeed line width</value>
+  </data>
+  <data name="HSpeedDisplayPointRadiusPx" xml:space="preserve">
+    <value>HSpeed point radius</value>
+  </data>
+  <data name="HSpeedDisplayLabelFontSize" xml:space="preserve">
+    <value>HSpeed label font size</value>
+  </data>
   <data name="HSpeedInterpolationGrid" xml:space="preserve">
     <value>HSpeed interpolation grid interval</value>
   </data>
