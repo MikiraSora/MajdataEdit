@@ -1,4 +1,4 @@
-﻿
+
 using MajSimai;
 using System.Windows.Media.Animation;
 using System.Windows.Navigation;
@@ -63,7 +63,12 @@ namespace MajdataEdit.SyntaxModule
             {
                 ErrorList.Clear();
                 int line = 1;
-                int column = 1;                
+                int column = 1;
+                if (!TryRemoveHSpeedMarkupForSyntaxCheck(str, out str))
+                {
+                    addError("HS", -1, -1);
+                    return;
+                }
                 var simaiChart = str.Split(",");
 
                 if(!string.IsNullOrEmpty(str))
@@ -130,6 +135,163 @@ namespace MajdataEdit.SyntaxModule
         /// <summary>
         /// 检查BPM与拍号的合法性
         /// </summary>
+        static bool TryRemoveHSpeedMarkupForSyntaxCheck(string simaiStr, out string cleaned)
+        {
+            var sb = new System.Text.StringBuilder(simaiStr.Length);
+            var insideHsGroup = false;
+
+            for (var i = 0; i < simaiStr.Length; i++)
+            {
+                if (simaiStr[i] == '<' && IsHSpeedTagAt(simaiStr, i))
+                {
+                    if (insideHsGroup)
+                    {
+                        cleaned = string.Empty;
+                        return false;
+                    }
+
+                    var endIndex = simaiStr.IndexOf('>', i + 1);
+                    if (endIndex == -1)
+                    {
+                        cleaned = string.Empty;
+                        return false;
+                    }
+
+                    var body = simaiStr[(i + 1)..endIndex].Replace("\n", "");
+                    if (!HSpeedSyntaxCheck(body, out var hasGroup))
+                    {
+                        cleaned = string.Empty;
+                        return false;
+                    }
+
+                    for (var j = i; j <= endIndex; j++)
+                    {
+                        if (simaiStr[j] == '\n')
+                        {
+                            sb.Append('\n');
+                        }
+                    }
+
+                    i = endIndex;
+                    if (hasGroup)
+                    {
+                        var nextIdx = i + 1;
+                        while (nextIdx < simaiStr.Length && char.IsWhiteSpace(simaiStr[nextIdx]))
+                        {
+                            sb.Append(simaiStr[nextIdx]);
+                            nextIdx++;
+                        }
+                        if (nextIdx < simaiStr.Length && simaiStr[nextIdx] == '(')
+                        {
+                            insideHsGroup = true;
+                            i = nextIdx;
+                        }
+                        else
+                        {
+                            i = nextIdx - 1;
+                        }
+                    }
+                    continue;
+                }
+
+                if (insideHsGroup && simaiStr[i] == ')')
+                {
+                    insideHsGroup = false;
+                    continue;
+                }
+
+                sb.Append(simaiStr[i]);
+            }
+
+            if (insideHsGroup)
+            {
+                cleaned = string.Empty;
+                return false;
+            }
+
+            cleaned = sb.ToString();
+            return true;
+        }
+
+        static bool IsHSpeedTagAt(string simaiStr, int index)
+        {
+            if (index < 0 || index >= simaiStr.Length || simaiStr[index] != '<')
+                return false;
+
+            index++;
+            while (index < simaiStr.Length && char.IsWhiteSpace(simaiStr[index]))
+                index++;
+
+            return index + 1 < simaiStr.Length && simaiStr[index] == 'H' && simaiStr[index + 1] == 'S';
+        }
+
+        static bool HSpeedSyntaxCheck(string body, out bool hasGroup)
+        {
+            hasGroup = false;
+            if (string.IsNullOrEmpty(body) || body.Length < 3 || body[0] != 'H' || body[1] != 'S')
+                return false;
+
+            var hsBody = body[2..];
+            var starCount = hsBody.Count(c => c == '*');
+            if (starCount > 1)
+                return false;
+
+            if (starCount == 0)
+            {
+                hasGroup = true;
+                return int.TryParse(hsBody, out var group) && group > 0;
+            }
+
+            var starIndex = hsBody.IndexOf('*');
+            var groupBody = hsBody[..starIndex];
+            var valueBody = hsBody[(starIndex + 1)..].Trim();
+
+            if (!string.IsNullOrEmpty(groupBody))
+            {
+                if (!int.TryParse(groupBody, out var group) || group < 0)
+                    return false;
+                hasGroup = true;
+            }
+
+            var durationStart = valueBody.IndexOf('[');
+            var speedBody = valueBody;
+            if (durationStart != -1)
+            {
+                var durationEnd = valueBody.IndexOf(']');
+                if (durationStart == 0 || durationEnd == -1 || durationEnd != valueBody.Length - 1)
+                    return false;
+
+                speedBody = valueBody[..durationStart].Trim();
+                var durationBody = valueBody[(durationStart + 1)..durationEnd].Trim();
+                if (!HSpeedDurationSyntaxCheck(durationBody))
+                    return false;
+            }
+
+            return IsNum(speedBody);
+        }
+
+        static bool HSpeedDurationSyntaxCheck(string body)
+        {
+            if (string.IsNullOrEmpty(body))
+                return false;
+
+            if (body.Contains("#"))
+            {
+                if (body[0] == '#')
+                    return double.TryParse(body[1..], out var seconds) && seconds > 0;
+
+                var splitBody = body.Split("#");
+                if (splitBody.Length != 2)
+                    return false;
+
+                return double.TryParse(splitBody[0], out var bpm) &&
+                       bpm > 0 &&
+                       RatioSyntaxCheckPositive(splitBody[1]);
+            }
+
+            return RatioSyntaxCheckPositive(body);
+        }
+
         static bool SpecialSyntaxCheck(ref string simaiStr,int posX,int posY)
         {
             int bpmHeadCount = 0;
@@ -800,6 +962,15 @@ namespace MajdataEdit.SyntaxModule
                 return false;
 
             return (int.TryParse(s[0], out int i) && i > 0) && (int.TryParse(s[1], out i) && i >= 0);
+        }
+        static bool RatioSyntaxCheckPositive(string ratioStr)
+        {
+            var s = ratioStr.Split(":");
+
+            if (s.Length != 2)
+                return false;
+
+            return (int.TryParse(s[0], out int i) && i > 0) && (int.TryParse(s[1], out i) && i > 0);
         }
         /// <summary>
         /// 判断是否为Note

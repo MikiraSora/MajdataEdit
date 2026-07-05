@@ -47,9 +47,9 @@ public sealed class SimaiChartConverter
 
         var preparedContent = PrepareChartContent(chartContent, fallbackWholeBpm);
         var chart = SimaiParser.ParseChart(preparedContent.AsSpan(), 0, out _);
-        var timingPoints = chart.NoteTimings.ToArray()
+        var allTimingPoints = chart.NoteTimings.ToArray();
+        var timingPoints = allTimingPoints
             .Where(x => x.Notes.Length != 0)
-            .OrderBy(x => x.Timing)
             .ToArray();
 
         if (timingPoints.Length == 0)
@@ -116,13 +116,14 @@ public sealed class SimaiChartConverter
         var noteStatMap = new Dictionary<string, int>();
         void AddStat(string key) => noteStatMap[key] = (noteStatMap.TryGetValue(key, out var v) ? v : 0) + 1;
 
-        foreach (var timingPoint in timingPoints)
+        foreach (var timingPoint in allTimingPoints)
         {
             var curTime = timingPoint.Timing;
             var currentTotalGrid = CalculateGrid(curTime);
             FormatGrid(currentTotalGrid, out var curUnit, out var curGrid);
 
-            if (Math.Abs(timingPoint.Bpm - currentBpm) > float.Epsilon)
+            var hasNotes = timingPoint.Notes.Length != 0;
+            if (hasNotes && Math.Abs(timingPoint.Bpm - currentBpm) > float.Epsilon)
             {
                 compositeOutput.AppendLine($"BPM\t{curUnit}\t{curGrid}\t{FormatBpm(timingPoint.Bpm)}");
 
