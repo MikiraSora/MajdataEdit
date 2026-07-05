@@ -253,21 +253,56 @@ namespace MajdataEdit.SyntaxModule
                 hasGroup = true;
             }
 
-            var durationStart = valueBody.IndexOf('[');
-            var speedBody = valueBody;
-            if (durationStart != -1)
-            {
-                var durationEnd = valueBody.IndexOf(']');
-                if (durationStart == 0 || durationEnd == -1 || durationEnd != valueBody.Length - 1)
-                    return false;
+            return HSpeedValueSyntaxCheck(valueBody);
+        }
 
-                speedBody = valueBody[..durationStart].Trim();
-                var durationBody = valueBody[(durationStart + 1)..durationEnd].Trim();
-                if (!HSpeedDurationSyntaxCheck(durationBody))
+        static bool HSpeedValueSyntaxCheck(string body)
+        {
+            body = body.Trim();
+            if (string.IsNullOrEmpty(body))
+                return false;
+
+            if (!body.Contains('~'))
+            {
+                if (HSpeedSegmentSyntaxCheck(body))
+                    return true;
+
+                return !body.Contains('[') &&
+                       !body.Contains(']') &&
+                       float.TryParse(body, out _);
+            }
+
+            var segments = body.Split('~');
+            if (segments.Length == 0)
+                return false;
+
+            foreach (var segment in segments)
+            {
+                if (!HSpeedSegmentSyntaxCheck(segment))
                     return false;
             }
 
-            return IsNum(speedBody);
+            return true;
+        }
+
+        static bool HSpeedSegmentSyntaxCheck(string body)
+        {
+            body = body.Trim();
+            if (string.IsNullOrEmpty(body))
+                return false;
+
+            var durationStart = body.IndexOf('[');
+            var durationEnd = body.IndexOf(']');
+            if (durationStart <= 0 ||
+                durationEnd == -1 ||
+                durationEnd != body.Length - 1 ||
+                body[(durationEnd + 1)..].Contains(']'))
+                return false;
+
+            var speedBody = body[..durationStart].Trim();
+            var durationBody = body[(durationStart + 1)..durationEnd].Trim();
+            return float.TryParse(speedBody, out _) &&
+                   HSpeedDurationSyntaxCheck(durationBody);
         }
 
         static bool HSpeedDurationSyntaxCheck(string body)
