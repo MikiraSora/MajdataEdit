@@ -68,7 +68,11 @@ Improve HSpeed-related rendering in the spectrum view:
   - `DrawHSpeedChanges = false` disables all HSpeed display;
   - `DrawEmptyHSpeedChanges = false` excludes empty-`RawContent` interpolation samples;
   - non-empty HSpeed change points remain eligible.
-- HSpeed-to-Y normalization is calculated per grouped line, not across the whole viewport.
+- HSpeed-to-Y normalization is calculated once from all eligible HSpeed change points in the whole chart.
+- Visible viewport points must not recalculate local min/max HSpeed.
+- The chart-wide minimum HSpeed maps to `height - 8`.
+- The chart-wide maximum HSpeed maps to `height / 3`.
+- If all eligible HSpeed values in the whole chart are equal, draw visible HSpeed lines at `height * 2 / 3`.
 - Grouping uses adjacent-point chaining:
   - sort eligible points by time within each soflan group;
   - append a point to the current group when its X distance from the previous point is `<= HSpeedDisplayGroupDistancePx`;
@@ -122,7 +126,7 @@ Improve HSpeed-related rendering in the spectrum view:
   - do not allocate a new `Font` per point or per label;
   - keep HSpeed event/group lists local, but avoid unnecessary LINQ in hot drawing paths.
 - HSpeed label numeric format remains `0.###` with `InvariantCulture`, followed by `x`.
-- The decision to include `[g]` in labels is based on visible HSpeed change events in the current viewport.
+- The decision to include `[g]` in labels is still based on visible HSpeed change events in the current viewport.
 - If the current viewport has no non-zero soflan group HSpeed changes, group `0` labels omit `[0]`.
 - Do not draw carried-in HSpeed state at the viewport boundary.
 - Draw only real HSpeed change timing points that are visible in the current viewport.

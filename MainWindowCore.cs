@@ -1030,7 +1030,8 @@ public partial class MainWindow : Window
         var labelFontSize = Math.Clamp(editorSetting.HSpeedDisplayLabelFontSize, 6, 18);
         var visibleStartTime = currentTime - deltatime;
         var visibleEndTime = currentTime + deltatime;
-        var hSpeedEvents = CollectVisibleHSpeedEvents(visibleStartTime, visibleEndTime, step, startIndex, lineWidth);
+        var hSpeedDisplayData = CollectHSpeedDisplayData(visibleStartTime, visibleEndTime, step, startIndex, lineWidth);
+        var hSpeedEvents = hSpeedDisplayData.VisibleEvents;
         if (hSpeedEvents.Count == 0)
         {
             return;
@@ -1091,7 +1092,7 @@ public partial class MainWindow : Window
             for (var sequenceIndex = 0; sequenceIndex < sequences.Count; sequenceIndex++)
             {
                 var sequence = sequences[sequenceIndex];
-                AssignHSpeedDisplayY(sequence, height, laneOffset);
+                AssignHSpeedDisplayY(sequence, height, laneOffset, hSpeedDisplayData.MinHSpeed, hSpeedDisplayData.MaxHSpeed);
                 if (sequence.Count >= 2)
                 {
                     DrawHSpeedSequence(graphics, sequence, linePen, pointBrush, pointOutlinePen, pointRadius);
@@ -1130,14 +1131,17 @@ public partial class MainWindow : Window
         }
     }
 
-    private List<HSpeedDisplayEvent> CollectVisibleHSpeedEvents(double visibleStartTime,
-                                                                double visibleEndTime,
-                                                                double step,
-                                                                int startIndex,
-                                                                float lineWidth)
+    private HSpeedDisplayData CollectHSpeedDisplayData(double visibleStartTime,
+                                                       double visibleEndTime,
+                                                       double step,
+                                                       int startIndex,
+                                                       float lineWidth)
     {
-        var events = new List<HSpeedDisplayEvent>();
+        var visibleEvents = new List<HSpeedDisplayEvent>();
         var lastHSpeedBySoflanGroup = new Dictionary<int, float> { [0] = 1f };
+        var hasHSpeedEvent = false;
+        var minHSpeed = 0f;
+        var maxHSpeed = 0f;
         foreach (var note in SimaiProcess.notelist)
         {
             if (note == null) break;
@@ -1152,14 +1156,26 @@ public partial class MainWindow : Window
                 lastHSpeedBySoflanGroup[soflanGroup] = note.HSpeed;
             }
             if (!isHSpeedChanged) continue;
-            if (note.Timing < visibleStartTime || note.Timing > visibleEndTime) continue;
             if (editorSetting?.DrawEmptyHSpeedChanges != true && string.IsNullOrEmpty(note.RawContent)) continue;
 
+            if (!hasHSpeedEvent)
+            {
+                minHSpeed = note.HSpeed;
+                maxHSpeed = note.HSpeed;
+                hasHSpeedEvent = true;
+            }
+            else
+            {
+                minHSpeed = Math.Min(minHSpeed, note.HSpeed);
+                maxHSpeed = Math.Max(maxHSpeed, note.HSpeed);
+            }
+            if (note.Timing < visibleStartTime || note.Timing > visibleEndTime) continue;
+
             var x = ((float)(note.Timing / step) - startIndex) * lineWidth;
-            events.Add(new HSpeedDisplayEvent(note.Timing, soflanGroup, note.HSpeed, x, 0f));
+            visibleEvents.Add(new HSpeedDisplayEvent(note.Timing, soflanGroup, note.HSpeed, x, 0f));
         }
 
-        return events;
+        return new HSpeedDisplayData(visibleEvents, minHSpeed, maxHSpeed);
     }
 
     private static List<List<HSpeedDisplayEvent>> BuildHSpeedSequences(List<HSpeedDisplayEvent> events, int groupDistancePx)
@@ -1186,7 +1202,11 @@ public partial class MainWindow : Window
         return sequences;
     }
 
-    private static void AssignHSpeedDisplayY(List<HSpeedDisplayEvent> sequence, int height, float laneOffset)
+    private static void AssignHSpeedDisplayY(List<HSpeedDisplayEvent> sequence,
+                                             int height,
+                                             float laneOffset,
+                                             float globalMinHSpeed,
+                                             float globalMaxHSpeed)
     {
         if (sequence.Count == 0)
         {
@@ -1195,15 +1215,7 @@ public partial class MainWindow : Window
 
         var maxY = height / 3f;
         var minY = Math.Max(maxY, height - 8f);
-        var minSpeed = sequence[0].HSpeed;
-        var maxSpeed = sequence[0].HSpeed;
-        for (var i = 1; i < sequence.Count; i++)
-        {
-            minSpeed = Math.Min(minSpeed, sequence[i].HSpeed);
-            maxSpeed = Math.Max(maxSpeed, sequence[i].HSpeed);
-        }
-
-        if (Math.Abs(maxSpeed - minSpeed) <= float.Epsilon)
+        if (Math.Abs(globalMaxHSpeed - globalMinHSpeed) <= float.Epsilon)
         {
             var flatY = ClampFloat(height * 2f / 3f + laneOffset, maxY, minY);
             for (var i = 0; i < sequence.Count; i++)
@@ -1215,7 +1227,7 @@ public partial class MainWindow : Window
 
         for (var i = 0; i < sequence.Count; i++)
         {
-            var progress = (sequence[i].HSpeed - minSpeed) / (maxSpeed - minSpeed);
+            var progress = (sequence[i].HSpeed - globalMinHSpeed) / (globalMaxHSpeed - globalMinHSpeed);
             var y = minY - (minY - maxY) * progress;
             sequence[i] = sequence[i] with { Y = ClampFloat(y + laneOffset, maxY, minY) };
         }
@@ -1606,6 +1618,8 @@ public partial class MainWindow : Window
     }
 
     private readonly record struct HSpeedDisplayEvent(double Time, int SoflanGroup, float HSpeed, float X, float Y);
+
+    private readonly record struct HSpeedDisplayData(List<HSpeedDisplayEvent> VisibleEvents, float MinHSpeed, float MaxHSpeed);
 
     private readonly record struct HSpeedLabelCandidate(HSpeedDisplayEvent Event, string Text, RectangleF Bounds);
 
