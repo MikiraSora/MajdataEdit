@@ -472,9 +472,6 @@ Click OK to start render.</value>
   <data name="HSpeedDisplayLineWidthPx" xml:space="preserve">
     <value>HSpeed line width</value>
   </data>
-  <data name="HSpeedDisplayPointRadiusPx" xml:space="preserve">
-    <value>HSpeed point radius</value>
-  </data>
   <data name="HSpeedDisplayLabelFontSize" xml:space="preserve">
     <value>HSpeed label font size</value>
   </data>

@@ -1026,7 +1026,6 @@ public partial class MainWindow : Window
 
         var groupDistancePx = Math.Clamp(editorSetting.HSpeedDisplayGroupDistancePx, 1, 200);
         var hSpeedLineWidth = Math.Clamp(editorSetting.HSpeedDisplayLineWidthPx, 1, 8);
-        var pointRadius = Math.Clamp(editorSetting.HSpeedDisplayPointRadiusPx, 1, 8);
         var labelFontSize = Math.Clamp(editorSetting.HSpeedDisplayLabelFontSize, 6, 18);
         var visibleStartTime = currentTime - deltatime;
         var visibleEndTime = currentTime + deltatime;
@@ -1051,7 +1050,6 @@ public partial class MainWindow : Window
         using var labelNearFormat = CreateHSpeedLabelFormat(StringAlignment.Near, StringAlignment.Near);
         using var labelFarFormat = CreateHSpeedLabelFormat(StringAlignment.Far, StringAlignment.Near);
         using var labelCenterFormat = CreateHSpeedLabelFormat(StringAlignment.Center, StringAlignment.Near);
-        using var pointOutlinePen = new Pen(Color.FromArgb(180, 0, 0, 0), 1f);
         var labelRectangles = new List<RectangleF>();
         var eventsByGroup = new Dictionary<int, List<HSpeedDisplayEvent>>();
         for (var i = 0; i < hSpeedEvents.Count; i++)
@@ -1084,7 +1082,6 @@ public partial class MainWindow : Window
             {
                 DashStyle = DashStyle.Dash
             };
-            using Brush pointBrush = new SolidBrush(groupColor);
             using Brush labelBrush = new SolidBrush(groupColor);
             using Brush shadowBrush = new SolidBrush(Color.FromArgb(180, 0, 0, 0));
             var laneOffset = GetHSpeedLaneOffset(groupOrderMap[soflanGroup]);
@@ -1095,7 +1092,7 @@ public partial class MainWindow : Window
                 AssignHSpeedDisplayY(sequence, height, laneOffset, hSpeedDisplayData.MinHSpeed, hSpeedDisplayData.MaxHSpeed);
                 if (sequence.Count >= 2)
                 {
-                    DrawHSpeedSequence(graphics, sequence, linePen, pointBrush, pointOutlinePen, pointRadius);
+                    DrawHSpeedSequence(graphics, sequence, linePen);
                     DrawHSpeedSequenceLabels(graphics,
                                              sequence,
                                              hSpeedLabelFont,
@@ -1114,15 +1111,12 @@ public partial class MainWindow : Window
                     DrawIsolatedHSpeedEvent(graphics,
                                             sequence[0],
                                             linePen,
-                                            pointBrush,
-                                            pointOutlinePen,
                                             labelBrush,
                                             shadowBrush,
                                             hSpeedLabelFont,
                                             labelNearFormat,
                                             labelFarFormat,
                                             labelRectangles,
-                                            pointRadius,
                                             width,
                                             height,
                                             shouldDrawSoflanGroup);
@@ -1235,10 +1229,7 @@ public partial class MainWindow : Window
 
     private static void DrawHSpeedSequence(Graphics graphics,
                                            List<HSpeedDisplayEvent> sequence,
-                                           Pen linePen,
-                                           Brush pointBrush,
-                                           Pen pointOutlinePen,
-                                           int pointRadius)
+                                           Pen linePen)
     {
         var points = new PointF[sequence.Count];
         for (var i = 0; i < sequence.Count; i++)
@@ -1246,38 +1237,30 @@ public partial class MainWindow : Window
             points[i] = new PointF(sequence[i].X, sequence[i].Y);
         }
         graphics.DrawLines(linePen, points);
-        for (var i = 0; i < sequence.Count; i++)
-        {
-            DrawHSpeedPoint(graphics, sequence[i], pointBrush, pointOutlinePen, pointRadius);
-        }
     }
 
     private static void DrawIsolatedHSpeedEvent(Graphics graphics,
                                                 HSpeedDisplayEvent hSpeedEvent,
                                                 Pen linePen,
-                                                Brush pointBrush,
-                                                Pen pointOutlinePen,
                                                 Brush labelBrush,
                                                 Brush shadowBrush,
                                                 System.Drawing.Font labelFont,
                                                 StringFormat labelNearFormat,
                                                 StringFormat labelFarFormat,
                                                 List<RectangleF> labelRectangles,
-                                                int pointRadius,
                                                 int width,
                                                 int height,
                                                 bool shouldDrawSoflanGroup)
     {
         graphics.DrawLine(linePen, hSpeedEvent.X - 6f, hSpeedEvent.Y, hSpeedEvent.X + 6f, hSpeedEvent.Y);
-        DrawHSpeedPoint(graphics, hSpeedEvent, pointBrush, pointOutlinePen, pointRadius);
 
         var label = FormatHSpeedLabel(hSpeedEvent, shouldDrawSoflanGroup);
         var labelSize = graphics.MeasureString(label, labelFont);
-        var labelPoint = new PointF(hSpeedEvent.X + pointRadius + 2f, hSpeedEvent.Y - labelSize.Height / 2f);
+        var labelPoint = new PointF(hSpeedEvent.X + 8f, hSpeedEvent.Y - labelSize.Height / 2f);
         var labelBounds = GetClampedLabelBounds(labelPoint, labelSize, width, height);
-        if (Math.Abs(labelBounds.X - hSpeedEvent.X) <= pointRadius + 1f)
+        if (labelBounds.X <= hSpeedEvent.X + 6f)
         {
-            labelPoint = new PointF(hSpeedEvent.X - pointRadius - 2f - labelSize.Width, hSpeedEvent.Y - labelSize.Height / 2f);
+            labelPoint = new PointF(hSpeedEvent.X - 8f - labelSize.Width, hSpeedEvent.Y - labelSize.Height / 2f);
             labelBounds = GetClampedLabelBounds(labelPoint, labelSize, width, height);
         }
         TryDrawHSpeedLabel(graphics,
@@ -1537,14 +1520,6 @@ public partial class MainWindow : Window
         }
 
         return bestIndex;
-    }
-
-    private static void DrawHSpeedPoint(Graphics graphics, HSpeedDisplayEvent hSpeedEvent, Brush pointBrush, Pen pointOutlinePen, int pointRadius)
-    {
-        var diameter = pointRadius * 2f;
-        var bounds = new RectangleF(hSpeedEvent.X - pointRadius, hSpeedEvent.Y - pointRadius, diameter, diameter);
-        graphics.FillEllipse(pointBrush, bounds);
-        graphics.DrawEllipse(pointOutlinePen, bounds);
     }
 
     private static string FormatHSpeedLabel(HSpeedDisplayEvent hSpeedEvent, bool shouldDrawSoflanGroup)

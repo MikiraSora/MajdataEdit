@@ -506,10 +506,6 @@ Open Browser to download latest update of Majdata?</value>
     <value>HSpeed line width</value>
     <comment>Translation required</comment>
   </data>
-  <data name="HSpeedDisplayPointRadiusPx" xml:space="preserve">
-    <value>HSpeed point radius</value>
-    <comment>Translation required</comment>
-  </data>
   <data name="HSpeedDisplayLabelFontSize" xml:space="preserve">
     <value>HSpeed label font size</value>
     <comment>Translation required</comment>

@@ -31,7 +31,6 @@ Improve HSpeed-related rendering in the spectrum view:
 - If all speeds in a grouped line are equal, draw the line at `height * 2 / 3`.
 - Isolated HSpeed changes use the same new visual language:
   - draw a short dashed horizontal segment extending `6px` left and right,
-  - draw a solid point at the change,
   - draw the speed label beside the point,
   - use the soflan group's color instead of the old global orange triangle.
 - Grouping is performed independently per soflan group.
@@ -58,9 +57,8 @@ Improve HSpeed-related rendering in the spectrum view:
   - endpoint labels have priority over internal extrema labels;
   - hide an internal extrema label if it overlaps an endpoint label;
   - if internal maximum and minimum labels overlap, keep the one with larger speed delta; on tie, keep the maximum label.
-- Draw every displayed HSpeed change as a solid point on grouped lines.
-- Point radius is `2px`.
-- Dashed lines connect the displayed points to show the sequence.
+- Do not draw timing point dots for HSpeed changes.
+- Dashed lines connect displayed HSpeed change positions to show the sequence.
 - If a grouped sequence crosses the visible viewport boundary, draw and label only visible points.
 - Endpoint labels refer to the first and last visible points, not off-screen true sequence endpoints.
 - Eligible display points keep the existing HSpeed-change detection semantics:
@@ -83,20 +81,17 @@ Improve HSpeed-related rendering in the spectrum view:
 - Expose these configurable HSpeed display style values:
   - `HSpeedDisplayGroupDistancePx`, default `18`;
   - `HSpeedDisplayLineWidthPx`, default `2`;
-  - `HSpeedDisplayPointRadiusPx`, default `2`;
   - `HSpeedDisplayLabelFontSize`, default `9`.
-- Keep dash pattern, palette editing, point outline color, and label offsets as internal defaults for now.
+- Keep dash pattern, palette editing, and label offsets as internal defaults for now.
 - Clamp ranges:
   - `HSpeedDisplayGroupDistancePx`: `1..200`;
   - `HSpeedDisplayLineWidthPx`: `1..8`;
-  - `HSpeedDisplayPointRadiusPx`: `1..8`;
   - `HSpeedDisplayLabelFontSize`: `6..18`.
 - Editor settings UI places the 4 new display style inputs near existing HSpeed options, before `HSpeedInterpolationGrid`:
   1. `HSpeedDisplayGroupDistancePx`
   2. `HSpeedDisplayLineWidthPx`
-  3. `HSpeedDisplayPointRadiusPx`
-  4. `HSpeedDisplayLabelFontSize`
-  5. `HSpeedInterpolationGrid`
+  3. `HSpeedDisplayLabelFontSize`
+  4. `HSpeedInterpolationGrid`
 - Drawing order:
   - HSpeed dashed lines, points, and labels are drawn after notes;
   - HSpeed display is drawn before play start and ghost cursor markers;
@@ -117,10 +112,8 @@ Improve HSpeed-related rendering in the spectrum view:
   draw semi-transparent black text at `(x + 1, y + 1)`, then draw the group-colored text at `(x, y)`.
 - Opacity:
   - dashed lines use alpha `220`;
-  - points use alpha `255`;
   - labels use alpha `255`;
-  - text shadows use alpha `180`;
-  - point outlines use alpha `180` black.
+  - text shadows use alpha `180`.
 - Performance/resource handling:
   - create a small set of `Pen`, `Brush`, and `Font` objects per `DrawWave()` call and dispose them with `using`;
   - do not allocate a new `Font` per point or per label;
@@ -138,7 +131,6 @@ Improve HSpeed-related rendering in the spectrum view:
 - New editor setting labels:
   - `HSpeedDisplayGroupDistancePx`: `HSpeed display group distance` / `变速显示聚合距离`;
   - `HSpeedDisplayLineWidthPx`: `HSpeed line width` / `变速线宽`;
-  - `HSpeedDisplayPointRadiusPx`: `HSpeed point radius` / `变速点半径`;
   - `HSpeedDisplayLabelFontSize`: `HSpeed label font size` / `变速标签字号`.
 - `DrawEmptyHSpeedChanges` filtering is applied before grouping.
 - After filtering, remaining eligible points still use the same grouping algorithm.
@@ -150,7 +142,7 @@ Improve HSpeed-related rendering in the spectrum view:
 - If clamping would make the isolated label overlap its point heavily, try placing it to the left.
 - Isolated labels still follow global label collision handling.
 - Remove the old orange triangle HSpeed marker entirely.
-- All HSpeed display uses the new dashed-line, point, and label system.
+- All HSpeed display uses the new dashed-line and label system.
 
 ## Open Questions
 

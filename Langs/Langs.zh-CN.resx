@@ -464,9 +464,6 @@
   <data name="HSpeedDisplayLineWidthPx" xml:space="preserve">
     <value>变速线宽</value>
   </data>
-  <data name="HSpeedDisplayPointRadiusPx" xml:space="preserve">
-    <value>变速点半径</value>
-  </data>
   <data name="HSpeedDisplayLabelFontSize" xml:space="preserve">
     <value>变速标签字号</value>
   </data>

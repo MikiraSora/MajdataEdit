@@ -61,7 +61,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
@@ -197,25 +196,19 @@
                  Text="2" />
 
         <Label Grid.Row="15" Grid.Column="0"
-               Content="{lex:Loc Key=HSpeedDisplayPointRadiusPx}" />
-        <TextBox x:Name="HSpeedDisplayPointRadiusPx"
-                 Grid.Row="15" Grid.Column="1"
-                 Text="2" />
-
-        <Label Grid.Row="16" Grid.Column="0"
                Content="{lex:Loc Key=HSpeedDisplayLabelFontSize}" />
         <TextBox x:Name="HSpeedDisplayLabelFontSize"
-                 Grid.Row="16" Grid.Column="1"
+                 Grid.Row="15" Grid.Column="1"
                  Text="9" />
 
-        <Label Grid.Row="17" Grid.Column="0"
+        <Label Grid.Row="16" Grid.Column="0"
                Content="{lex:Loc Key=HSpeedInterpolationGrid}" />
         <TextBox x:Name="HSpeedInterpolationGrid"
-                 Grid.Row="17" Grid.Column="1"
+                 Grid.Row="16" Grid.Column="1"
                  Text="32" />
 
         <StackPanel Orientation="Horizontal"
-                    Grid.Row="18" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Center">
+                    Grid.Row="17" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Center">
             <Button x:Name="Save_Button" Content="{lex:Loc Key=Save}"
                     Width="70" Height="28" Margin="0,5,10,5"
                     Foreground="{DynamicResource ButtonForeground}"

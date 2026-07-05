@@ -71,7 +71,6 @@ public partial class EditorSettingPanel : Window
         DrawEmptyHSpeedChanges.IsChecked = window.editorSetting.DrawEmptyHSpeedChanges;
         HSpeedDisplayGroupDistancePx.Text = window.editorSetting.HSpeedDisplayGroupDistancePx.ToString();
         HSpeedDisplayLineWidthPx.Text = window.editorSetting.HSpeedDisplayLineWidthPx.ToString();
-        HSpeedDisplayPointRadiusPx.Text = window.editorSetting.HSpeedDisplayPointRadiusPx.ToString();
         HSpeedDisplayLabelFontSize.Text = window.editorSetting.HSpeedDisplayLabelFontSize.ToString();
         HSpeedInterpolationGrid.Text = window.editorSetting.HSpeedInterpolationGrid.ToString();
         SyntaxCheckLevel.SelectedIndex = window.editorSetting.SyntaxCheckLevel;
@@ -125,7 +124,6 @@ public partial class EditorSettingPanel : Window
         window.editorSetting!.DrawEmptyHSpeedChanges = (bool)DrawEmptyHSpeedChanges.IsChecked!;
         window.editorSetting!.HSpeedDisplayGroupDistancePx = Math.Clamp(int.Parse(HSpeedDisplayGroupDistancePx.Text), 1, 200);
         window.editorSetting!.HSpeedDisplayLineWidthPx = Math.Clamp(int.Parse(HSpeedDisplayLineWidthPx.Text), 1, 8);
-        window.editorSetting!.HSpeedDisplayPointRadiusPx = Math.Clamp(int.Parse(HSpeedDisplayPointRadiusPx.Text), 1, 8);
         window.editorSetting!.HSpeedDisplayLabelFontSize = Math.Clamp(int.Parse(HSpeedDisplayLabelFontSize.Text), 6, 18);
         window.editorSetting!.HSpeedInterpolationGrid = Math.Max(1, int.Parse(HSpeedInterpolationGrid.Text));
         window.editorSetting!.editorPlayMethod = (EditorPlayMethod)PlayMethod.SelectedIndex;
