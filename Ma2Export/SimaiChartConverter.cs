@@ -181,8 +181,7 @@ public sealed class SimaiChartConverter
                             break;
                     }
 
-                    if (note.SoflanGroup != 0)
-                        notesOutput.Append($"\t#{note.SoflanGroup}");
+                    AppendSoflanMarker(notesOutput, note);
 
                     notesOutput.AppendLine();
                     AddStat(id);
@@ -455,6 +454,23 @@ public sealed class SimaiChartConverter
         }
 
         return note.IsEx ? "EX" + suffix : "NM" + suffix;
+    }
+
+    private static void AppendSoflanMarker(StringBuilder output, SimaiNote note)
+    {
+        if (!note.IsFixedSoflan)
+        {
+            if (note.SoflanGroup != 0)
+                output.Append($"\t#{note.SoflanGroup}");
+            return;
+        }
+
+        output.Append("\t#");
+        if (note.SoflanGroup != 0)
+            output.Append(note.SoflanGroup.ToString(CultureInfo.InvariantCulture));
+        output.Append('F');
+        if (note.HasFixedSoflanSpeed)
+            output.Append(note.FixedSoflanSpeed.ToString("G9", CultureInfo.InvariantCulture));
     }
 
     private static List<SlidePart> InstantiateStarGroup(SimaiTimingPoint timing, SimaiNote note)

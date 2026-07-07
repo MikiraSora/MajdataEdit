@@ -1,5 +1,6 @@
 
 using MajSimai;
+using System.Globalization;
 using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 
@@ -596,6 +597,19 @@ namespace MajdataEdit.SyntaxModule
         /// <param name="noteStr"></param>
         static bool NoteSyntaxCheck(string noteStr,int posX,int posY)
         {
+            var originalNoteStr = noteStr;
+            var hasFixedSoflan = false;
+            if (!TryStripFixedSoflanModifier(ref noteStr, out hasFixedSoflan))
+            {
+                ErrorList.Add(new SimaiErrorInfo(posX, posY,
+                    string.Format(
+                        MainWindow.GetLocalizedString("SyntaxError"),
+                        originalNoteStr,
+                        posY,
+                        posX)));
+                return false;
+            }
+
             if (IsTap(noteStr))
                 return true;
             else if (IsHold(noteStr))
@@ -615,11 +629,90 @@ namespace MajdataEdit.SyntaxModule
             ErrorList.Add(new SimaiErrorInfo(posX, posY,
                     string.Format(
                         MainWindow.GetLocalizedString("SyntaxError"),
-                        noteStr,
+                        originalNoteStr,
                         posY,
                         posX)));
             return false;
 
+        }
+
+        static bool TryStripFixedSoflanModifier(ref string noteStr, out bool hasFixedSoflan)
+        {
+            hasFixedSoflan = false;
+            var fixedSoflanIndex = noteStr.IndexOf('@');
+            if (fixedSoflanIndex < 0)
+                return true;
+
+            if (noteStr.IndexOf('@', fixedSoflanIndex + 1) >= 0)
+                return false;
+
+            var firstSlideMarkIndex = IndexOfFirstSlideMark(noteStr);
+            if (firstSlideMarkIndex >= 0)
+            {
+                if (fixedSoflanIndex > firstSlideMarkIndex)
+                    return false;
+
+                var slideHeadSpeedBody = noteStr[(fixedSoflanIndex + 1)..firstSlideMarkIndex];
+                if (!IsFixedSoflanSpeedSyntaxValid(slideHeadSpeedBody))
+                    return false;
+
+                var baseNoteStr = noteStr[..fixedSoflanIndex] + noteStr[firstSlideMarkIndex..];
+                if (string.IsNullOrEmpty(baseNoteStr))
+                    return false;
+
+                noteStr = baseNoteStr;
+                hasFixedSoflan = true;
+                return true;
+            }
+
+            var speedBody = noteStr[(fixedSoflanIndex + 1)..];
+            if (!IsFixedSoflanSpeedSyntaxValid(speedBody))
+                return false;
+
+            var baseNoteStrNoSlide = noteStr[..fixedSoflanIndex];
+            if (string.IsNullOrEmpty(baseNoteStrNoSlide))
+                return false;
+            if (baseNoteStrNoSlide.Length == 2 &&
+                char.IsDigit(baseNoteStrNoSlide[0]) &&
+                char.IsDigit(baseNoteStrNoSlide[1]))
+                return false;
+
+            noteStr = baseNoteStrNoSlide;
+            hasFixedSoflan = true;
+            return true;
+        }
+
+        static bool IsFixedSoflanSpeedSyntaxValid(string speedBody)
+        {
+            if (speedBody.Length == 0)
+                return true;
+
+            for (var i = 0; i < speedBody.Length; i++)
+            {
+                if (char.IsWhiteSpace(speedBody[i]))
+                    return false;
+            }
+
+            return float.TryParse(speedBody, NumberStyles.Float, CultureInfo.InvariantCulture, out var speed) &&
+                   !float.IsNaN(speed) &&
+                   !float.IsInfinity(speed) &&
+                   speed > 0;
+        }
+
+        static int IndexOfFirstSlideMark(string noteStr)
+        {
+            for (var i = 0; i < noteStr.Length; i++)
+            {
+                if (IsSlideMark(noteStr[i]))
+                    return i;
+            }
+
+            return -1;
+        }
+
+        static bool IsSlideMark(char c)
+        {
+            return c is '-' or '^' or 'v' or '<' or '>' or 'V' or 'p' or 'q' or 's' or 'z' or 'w';
         }
         /// <summary>
         /// 检查Hold参数的合法性
