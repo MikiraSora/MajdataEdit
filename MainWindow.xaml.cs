@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Media;
+using System.Text;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,6 +25,8 @@ namespace MajdataEdit;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
+
     public MainWindow()
     {
         InitializeComponent();
@@ -271,12 +274,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        var outputFolder = SelectMa2OutputFolder();
-        if (string.IsNullOrWhiteSpace(outputFolder))
-        {
-            return;
-        }
-
         var converter = new SimaiChartConverter();
         var musicId6 = Ma2ExportMetadata.GetMusicId6(SimaiProcess.other_commands);
         var fallbackWholeBpm = Ma2ExportMetadata.GetWholeBpm(SimaiProcess.other_commands);
@@ -292,6 +289,18 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show("MA2 转换失败：\n" + ex.Message, "生成 .ma2谱面文件", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        if (exportResults.Count == 1)
+        {
+            SaveSingleMa2File(exportResults[0]);
+            return;
+        }
+
+        var outputFolder = SelectMa2OutputFolder();
+        if (string.IsNullOrWhiteSpace(outputFolder))
+        {
             return;
         }
 
@@ -317,7 +326,7 @@ public partial class MainWindow : Window
 
             try
             {
-                File.WriteAllText(outputPath, result.Content);
+                File.WriteAllText(outputPath, result.Content, Utf8NoBom);
                 written++;
             }
             catch (Exception ex)
@@ -344,6 +353,42 @@ public partial class MainWindow : Window
     private string? SelectMa2OutputFolder()
     {
         return FolderPicker.SelectFolder(this, "选择 .ma2 输出文件夹", Directory.Exists(maidataDir) ? maidataDir : null);
+    }
+
+    private void SaveSingleMa2File(Ma2ExportResult result)
+    {
+        var saveFileDialog = new SaveFileDialog
+        {
+            Title = "保存 .ma2谱面文件",
+            Filter = "MA2 谱面文件 (*.ma2)|*.ma2|所有文件 (*.*)|*.*",
+            FileName = result.FileName,
+            DefaultExt = ".ma2",
+            AddExtension = true,
+            OverwritePrompt = true
+        };
+
+        if (Directory.Exists(maidataDir))
+        {
+            saveFileDialog.InitialDirectory = maidataDir;
+        }
+
+        if (saveFileDialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(saveFileDialog.FileName, result.Content, Utf8NoBom);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("写入失败：\n" + ex.Message, "生成 .ma2谱面文件", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        MessageBox.Show("生成完成：\n" + saveFileDialog.FileName, "生成 .ma2谱面文件", MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     private void MirrorLeftRight_MenuItem_Click(object? sender, RoutedEventArgs e)
