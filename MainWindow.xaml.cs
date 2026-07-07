@@ -682,6 +682,23 @@ public partial class MainWindow : Window
         FumenContent.Focus();
     }
 
+    private void ColorObjectsByHSpeedGroupCheck_CheckedChanged(object sender, RoutedEventArgs e)
+    {
+        if (isReadingEditorSetting)
+        {
+            return;
+        }
+
+        if (editorSetting != null)
+        {
+            editorSetting.ColorObjectsByHSpeedGroup = ColorObjectsByHSpeedGroupCheck.IsChecked == true;
+            SaveEditorSetting();
+        }
+
+        DrawWave();
+        FumenContent.Focus();
+    }
+
     private void Op_Button_Click(object sender, RoutedEventArgs e)
     {
         TogglePlayAndStop(PlayMethod.Op);

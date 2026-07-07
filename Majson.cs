@@ -112,6 +112,7 @@ public class EditorSetting
     public float playSpeed = 7.5f;
     public string PlayStopKey = "Ctrl+Shift+x";
     public int RenderMode = 0; //0=硬件渲染(默认)，1=软件渲染
+    public bool ColorObjectsByHSpeedGroup = false;
     public bool DrawHSpeedChanges = true;
     public bool DrawEmptyHSpeedChanges = true;
     public int HSpeedDisplayGroupDistancePx = 18;

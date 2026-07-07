@@ -219,6 +219,9 @@
   <data name="TextFollow" xml:space="preserve">
     <value>TextFollow</value>
   </data>
+  <data name="ColorObjectsByHSpeedGroup" xml:space="preserve">
+    <value>Color objects by HS group</value>
+  </data>
   <data name="Tools" xml:space="preserve">
     <value>Tools</value>
   </data>

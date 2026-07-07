@@ -220,6 +220,9 @@
   <data name="TextFollow" xml:space="preserve">
     <value>譜面フォロー</value>
   </data>
+  <data name="ColorObjectsByHSpeedGroup" xml:space="preserve">
+    <value>物件を変速グループで色分け</value>
+  </data>
   <data name="Tools" xml:space="preserve">
     <value>ツール</value>
   </data>

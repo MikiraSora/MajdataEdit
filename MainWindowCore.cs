@@ -65,6 +65,7 @@ public partial class MainWindow : Window
     private float ghostCusorPositionTime;
     private bool isDrawing;
     private bool isLoading;
+    private bool isReadingEditorSetting;
     private bool isReplaceConformed;
 
     private bool isSaved = true;
@@ -550,38 +551,47 @@ public partial class MainWindow : Window
         if (!File.Exists(editorSettingFilename)) CreateEditorSetting();
         var json = File.ReadAllText(editorSettingFilename);
         editorSetting = JsonConvert.DeserializeObject<EditorSetting>(json)!;
+        isReadingEditorSetting = true;
 
-        if (RenderOptions.ProcessRenderMode != RenderMode.SoftwareOnly)
-            //如果没有通过命令行预先指定渲染模式，则使用设置项的渲染模式
-            RenderOptions.ProcessRenderMode =
-                editorSetting.RenderMode == 0 ? RenderMode.Default : RenderMode.SoftwareOnly;
-        else
-            //如果通过命令行指定了使用软件渲染模式，则覆盖设置项
-            editorSetting.RenderMode = 1;
+        try
+        {
+            if (RenderOptions.ProcessRenderMode != RenderMode.SoftwareOnly)
+                //如果没有通过命令行预先指定渲染模式，则使用设置项的渲染模式
+                RenderOptions.ProcessRenderMode =
+                    editorSetting.RenderMode == 0 ? RenderMode.Default : RenderMode.SoftwareOnly;
+            else
+                //如果通过命令行指定了使用软件渲染模式，则覆盖设置项
+                editorSetting.RenderMode = 1;
 
-        LocalizeDictionary.Instance.Culture = new CultureInfo(editorSetting.Language);
-        AddGesture(editorSetting.PlayPauseKey, "PlayAndPause");
-        AddGesture(editorSetting.PlayStopKey, "StopPlaying");
-        AddGesture(editorSetting.SaveKey, "SaveFile");
-        AddGesture(editorSetting.SendViewerKey, "SendToView");
-        AddGesture(editorSetting.IncreasePlaybackSpeedKey, "IncreasePlaybackSpeed");
-        AddGesture(editorSetting.DecreasePlaybackSpeedKey, "DecreasePlaybackSpeed");
-        AddGesture("Ctrl+f", "Find");
-        AddGesture(editorSetting.MirrorLeftRightKey, "MirrorLR");
-        AddGesture(editorSetting.MirrorUpDownKey, "MirrorUD");
-        AddGesture(editorSetting.Mirror180Key, "Mirror180");
-        AddGesture(editorSetting.Mirror45Key, "Mirror45");
-        AddGesture(editorSetting.MirrorCcw45Key, "MirrorCcw45");
-        FumenContent.FontSize = editorSetting.FontSize;
+            LocalizeDictionary.Instance.Culture = new CultureInfo(editorSetting.Language);
+            AddGesture(editorSetting.PlayPauseKey, "PlayAndPause");
+            AddGesture(editorSetting.PlayStopKey, "StopPlaying");
+            AddGesture(editorSetting.SaveKey, "SaveFile");
+            AddGesture(editorSetting.SendViewerKey, "SendToView");
+            AddGesture(editorSetting.IncreasePlaybackSpeedKey, "IncreasePlaybackSpeed");
+            AddGesture(editorSetting.DecreasePlaybackSpeedKey, "DecreasePlaybackSpeed");
+            AddGesture("Ctrl+f", "Find");
+            AddGesture(editorSetting.MirrorLeftRightKey, "MirrorLR");
+            AddGesture(editorSetting.MirrorUpDownKey, "MirrorUD");
+            AddGesture(editorSetting.Mirror180Key, "Mirror180");
+            AddGesture(editorSetting.Mirror45Key, "Mirror45");
+            AddGesture(editorSetting.MirrorCcw45Key, "MirrorCcw45");
+            FumenContent.FontSize = editorSetting.FontSize;
 
-        ViewerCover.Content = editorSetting.backgroundCover.ToString();
-        ViewerSpeed.Content = editorSetting.playSpeed.ToString("F1"); // 转化为形如"7.0", "9.5"这样的速度
-        ViewerTouchSpeed.Content = editorSetting.touchSpeed.ToString("F1");
+            ViewerCover.Content = editorSetting.backgroundCover.ToString();
+            ViewerSpeed.Content = editorSetting.playSpeed.ToString("F1"); // 转化为形如"7.0", "9.5"这样的速度
+            ViewerTouchSpeed.Content = editorSetting.touchSpeed.ToString("F1");
+            ColorObjectsByHSpeedGroupCheck.IsChecked = editorSetting.ColorObjectsByHSpeedGroup;
 
-        chartChangeTimer.Interval = editorSetting.ChartRefreshDelay; // 设置更新延迟
-        SimaiProcess.HSpeedInterpolationGrid = Math.Max(1, editorSetting.HSpeedInterpolationGrid);
+            chartChangeTimer.Interval = editorSetting.ChartRefreshDelay; // 设置更新延迟
+            SimaiProcess.HSpeedInterpolationGrid = Math.Max(1, editorSetting.HSpeedInterpolationGrid);
 
-        SaveEditorSetting(); // 覆盖旧版本setting
+            SaveEditorSetting(); // 覆盖旧版本setting
+        }
+        finally
+        {
+            isReadingEditorSetting = false;
+        }
     }
 
     public void SaveEditorSetting()
@@ -859,6 +869,10 @@ public partial class MainWindow : Window
 
                 foreach (var noteD in notes)
                 {
+                    var shouldColorByHSpeedGroup = editorSetting?.ColorObjectsByHSpeedGroup == true;
+                    var hSpeedGroupColor = shouldColorByHSpeedGroup
+                        ? GetObjectHSpeedGroupColor(noteD.SoflanGroup)
+                        : Color.Empty;
                     var y = noteD.StartPosition * 6.875f + 8f; //与键位有关
 
                     if (noteD.IsHanabi)
@@ -881,12 +895,9 @@ public partial class MainWindow : Window
                         if (noteD.IsForceStar)
                         {
                             pen.Width = 3;
-                            if (noteD.IsBreak)
-                                pen.Color = Color.OrangeRed;
-                            else if (isEach)
-                                pen.Color = Color.Gold;
-                            else
-                                pen.Color = Color.DeepSkyBlue;
+                            pen.Color = shouldColorByHSpeedGroup
+                                ? hSpeedGroupColor
+                                : GetTapStarColor(noteD, isEach);
                             Brush brush = new SolidBrush(pen.Color);
                             graphics.DrawString("*", new Font("Consolas", 12, System.Drawing.FontStyle.Bold), brush,
                                 new PointF(x - 7f, y - 7f));
@@ -894,12 +905,9 @@ public partial class MainWindow : Window
                         else
                         {
                             pen.Width = 2;
-                            if (noteD.IsBreak)
-                                pen.Color = Color.OrangeRed;
-                            else if (isEach)
-                                pen.Color = Color.Gold;
-                            else
-                                pen.Color = Color.LightPink;
+                            pen.Color = shouldColorByHSpeedGroup
+                                ? hSpeedGroupColor
+                                : GetTapColor(noteD, isEach);
                             graphics.DrawEllipse(pen, x - 2.5f, y - 2.5f, 5, 5);
                         }
                     }
@@ -907,19 +915,18 @@ public partial class MainWindow : Window
                     if (noteD.Type == SimaiNoteType.Touch)
                     {
                         pen.Width = 2;
-                        pen.Color = isEach ? Color.Gold : Color.DeepSkyBlue;
+                        pen.Color = shouldColorByHSpeedGroup
+                            ? hSpeedGroupColor
+                            : (isEach ? Color.Gold : Color.DeepSkyBlue);
                         graphics.DrawRectangle(pen, x - 2.5f, y - 2.5f, 5, 5);
                     }
 
                     if (noteD.Type == SimaiNoteType.Hold)
                     {
                         pen.Width = 3;
-                        if (noteD.IsBreak)
-                            pen.Color = Color.OrangeRed;
-                        else if (isEach)
-                            pen.Color = Color.Gold;
-                        else
-                            pen.Color = Color.LightPink;
+                        pen.Color = shouldColorByHSpeedGroup
+                            ? hSpeedGroupColor
+                            : GetTapColor(noteD, isEach);
 
                         var xRight = x + (float)(noteD.HoldTime / step) * linewidth;
 
@@ -938,13 +945,21 @@ public partial class MainWindow : Window
                         if (!float.IsNormal(xDelta)) xDelta = ushort.MaxValue;
                         if (xDelta < 1f) xDelta = 1;
 
-                        pen.Color = Color.FromArgb(200, 255, 75, 0);
+                        pen.Color = shouldColorByHSpeedGroup
+                            ? Color.FromArgb(200, hSpeedGroupColor)
+                            : Color.FromArgb(200, 255, 75, 0);
                         graphics.DrawLine(pen, x, y, x + xDelta * 4f, y);
-                        pen.Color = Color.FromArgb(200, 255, 241, 0);
+                        pen.Color = shouldColorByHSpeedGroup
+                            ? Color.FromArgb(200, hSpeedGroupColor)
+                            : Color.FromArgb(200, 255, 241, 0);
                         graphics.DrawLine(pen, x, y, x + xDelta * 3f, y);
-                        pen.Color = Color.FromArgb(200, 2, 165, 89);
+                        pen.Color = shouldColorByHSpeedGroup
+                            ? Color.FromArgb(200, hSpeedGroupColor)
+                            : Color.FromArgb(200, 2, 165, 89);
                         graphics.DrawLine(pen, x, y, x + xDelta * 2f, y);
-                        pen.Color = Color.FromArgb(200, 0, 140, 254);
+                        pen.Color = shouldColorByHSpeedGroup
+                            ? Color.FromArgb(200, hSpeedGroupColor)
+                            : Color.FromArgb(200, 0, 140, 254);
                         graphics.DrawLine(pen, x, y, x + xDelta, y);
                     }
 
@@ -953,23 +968,17 @@ public partial class MainWindow : Window
                         pen.Width = 3;
                         if (!noteD.IsSlideNoHead)
                         {
-                            if (noteD.IsBreak)
-                                pen.Color = Color.OrangeRed;
-                            else if (isEach)
-                                pen.Color = Color.Gold;
-                            else
-                                pen.Color = Color.DeepSkyBlue;
+                            pen.Color = shouldColorByHSpeedGroup
+                                ? hSpeedGroupColor
+                                : GetTapStarColor(noteD, isEach);
                             Brush brush = new SolidBrush(pen.Color);
                             graphics.DrawString("*", new Font("Consolas", 12, System.Drawing.FontStyle.Bold), brush,
                                 new PointF(x - 7f, y - 7f));
                         }
 
-                        if (noteD.IsSlideBreak)
-                            pen.Color = Color.OrangeRed;
-                        else if (notes.Count(o => o.Type == SimaiNoteType.Slide) >= 2)
-                            pen.Color = Color.Gold;
-                        else
-                            pen.Color = Color.SkyBlue;
+                        pen.Color = shouldColorByHSpeedGroup
+                            ? hSpeedGroupColor
+                            : GetSlideColor(noteD, notes);
                         pen.DashStyle = DashStyle.Dot;
                         var xSlide = (float)(noteD.SlideStartTime / step - startindex) * linewidth;
                         var xSlideRight = (float)(noteD.SlideTime / step) * linewidth + xSlide;
@@ -1586,10 +1595,47 @@ public partial class MainWindow : Window
             Color.HotPink,
             Color.SpringGreen,
             Color.Tomato,
-            Color.MediumOrchid
+            Color.MediumOrchid,
+            Color.DodgerBlue,
+            Color.Chartreuse,
+            Color.Coral,
+            Color.Violet,
+            Color.Turquoise,
+            Color.YellowGreen,
+            Color.Salmon,
+            Color.Plum,
+            Color.Aqua,
+            Color.Khaki,
+            Color.LightGreen,
+            Color.IndianRed,
+            Color.Orchid,
+            Color.MediumTurquoise
         };
         var index = Math.Abs(soflanGroup) % palette.Length;
         return palette[index];
+    }
+
+    private static Color GetObjectHSpeedGroupColor(int soflanGroup)
+    {
+        return soflanGroup == 0 ? Color.White : GetHSpeedGroupColor(soflanGroup);
+    }
+
+    private static Color GetTapStarColor(SimaiNote note, bool isEach)
+    {
+        if (note.IsBreak) return Color.OrangeRed;
+        return isEach ? Color.Gold : Color.DeepSkyBlue;
+    }
+
+    private static Color GetTapColor(SimaiNote note, bool isEach)
+    {
+        if (note.IsBreak) return Color.OrangeRed;
+        return isEach ? Color.Gold : Color.LightPink;
+    }
+
+    private static Color GetSlideColor(SimaiNote note, SimaiNote[] notes)
+    {
+        if (note.IsSlideBreak) return Color.OrangeRed;
+        return notes.Count(o => o.Type == SimaiNoteType.Slide) >= 2 ? Color.Gold : Color.SkyBlue;
     }
 
     private readonly record struct HSpeedDisplayEvent(double Time, int SoflanGroup, float HSpeed, float X, float Y);
