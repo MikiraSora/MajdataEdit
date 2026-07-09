@@ -1,18 +1,20 @@
-name: Build
-run-name: Build editor exe
-on: [push, pull_request]
+name: Notify MajdataView
+
+on:
+    push:
+      branches:
+        - master
 jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 6.0.x
-      - run: dotnet restore
-      - run: dotnet publish -c Release -r win-x64 --no-self-contained
-      - run: ls -R
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Build
-          path: bin\Release\net6.0-windows\win-x64\publish
+    notify-majdataview:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Trigger MajdataView build
+          run: |
+            curl -L \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.MAJDATAVIEW_DISPATCH_TOKEN }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/MikiraSora/MajdataView/dispatches \
+              -d '{"event_type":"majdataedit-push","client_payload":
+              {"majdataedit_sha":"${{ github.sha }}","majdataedit_ref":"${{ github.ref_name }}"}}'
