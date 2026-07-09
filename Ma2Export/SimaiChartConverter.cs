@@ -116,6 +116,11 @@ public sealed class SimaiChartConverter
         var noteStatMap = new Dictionary<string, int>();
         void AddStat(string key) => noteStatMap[key] = (noteStatMap.TryGetValue(key, out var v) ? v : 0) + 1;
 
+        var soflanGroupMap = BuildAutoSoflanGroupMap(allTimingPoints);
+        int MapSoflanGroup(int soflanGroup) => soflanGroup < 0 && soflanGroupMap.TryGetValue(soflanGroup, out var mappedGroup)
+            ? mappedGroup
+            : soflanGroup;
+
         foreach (var timingPoint in allTimingPoints)
         {
             var curTime = timingPoint.Timing;
@@ -181,7 +186,7 @@ public sealed class SimaiChartConverter
                             break;
                     }
 
-                    AppendSoflanMarker(notesOutput, note);
+                    AppendSoflanMarker(notesOutput, note, MapSoflanGroup);
 
                     notesOutput.AppendLine();
                     AddStat(id);
@@ -275,6 +280,7 @@ public sealed class SimaiChartConverter
         foreach (var pair1 in hSpeedListMap)
         {
             var soflanGroup = pair1.Key;
+            var outputSoflanGroup = MapSoflanGroup(soflanGroup);
             var speedList = pair1.Value.OrderBy(x => x.Key).ToList();
 
             for (int i = 0; i < speedList.Count - 1; i++)
@@ -288,7 +294,7 @@ public sealed class SimaiChartConverter
 
                 var duration = nextSpeedPoint.Key - curSpeedPoint.Key;
 
-                compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{soflanGroup}");
+                compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{outputSoflanGroup}");
             }
             {
                 var lastSpeedPoint = speedList[^1];
@@ -299,7 +305,7 @@ public sealed class SimaiChartConverter
 
                 var duration = lastNoteTotalGrid + 1 - lastSpeedPoint.Key;
 
-                compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{soflanGroup}");
+                compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{outputSoflanGroup}");
             }
         }
 
@@ -428,6 +434,60 @@ public sealed class SimaiChartConverter
         return false;
     }
 
+    private static Dictionary<int, int> BuildAutoSoflanGroupMap(IEnumerable<SimaiTimingPoint> timingPoints)
+    {
+        var explicitMaxGroup = 0;
+        var autoGroupFirstSeen = new Dictionary<int, (double Timing, int Order)>();
+        var autoGroupOrder = 0;
+
+        foreach (var timingPoint in timingPoints)
+        {
+            TrackGroup(timingPoint.SoflanGroup, timingPoint.Timing);
+            foreach (var note in timingPoint.Notes)
+            {
+                TrackGroup(note.SoflanGroup, timingPoint.Timing);
+            }
+        }
+
+        if (autoGroupFirstSeen.Count == 0)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        var nextGroup = GetAutoSoflanGroupBase(explicitMaxGroup);
+        var groupMap = new Dictionary<int, int>();
+        foreach (var group in autoGroupFirstSeen.OrderBy(x => x.Value.Timing).ThenBy(x => x.Value.Order))
+        {
+            groupMap[group.Key] = nextGroup++;
+        }
+
+        return groupMap;
+
+        void TrackGroup(int soflanGroup, double timing)
+        {
+            if (soflanGroup > explicitMaxGroup)
+            {
+                explicitMaxGroup = soflanGroup;
+            }
+            else if (soflanGroup < 0 && !autoGroupFirstSeen.ContainsKey(soflanGroup))
+            {
+                autoGroupFirstSeen[soflanGroup] = (timing, autoGroupOrder++);
+            }
+        }
+    }
+
+    private static int GetAutoSoflanGroupBase(int maxExplicitGroup)
+    {
+        var digits = Math.Max(1, maxExplicitGroup.ToString(CultureInfo.InvariantCulture).Length);
+        var result = 1;
+        for (var i = 0; i < digits; i++)
+        {
+            result *= 10;
+        }
+
+        return result;
+    }
+
     private static string GetMa2NoteId(SimaiNote note)
     {
         return note.Type switch
@@ -456,18 +516,20 @@ public sealed class SimaiChartConverter
         return note.IsEx ? "EX" + suffix : "NM" + suffix;
     }
 
-    private static void AppendSoflanMarker(StringBuilder output, SimaiNote note)
+    private static void AppendSoflanMarker(StringBuilder output, SimaiNote note, Func<int, int> mapSoflanGroup)
     {
+        var soflanGroup = mapSoflanGroup(note.SoflanGroup);
+
         if (!note.IsFixedSoflan)
         {
-            if (note.SoflanGroup != 0)
-                output.Append($"\t#{note.SoflanGroup}");
+            if (soflanGroup != 0)
+                output.Append($"\t#{soflanGroup}");
             return;
         }
 
         output.Append("\t#");
-        if (note.SoflanGroup != 0)
-            output.Append(note.SoflanGroup.ToString(CultureInfo.InvariantCulture));
+        if (soflanGroup != 0)
+            output.Append(soflanGroup.ToString(CultureInfo.InvariantCulture));
         output.Append('F');
         if (note.HasFixedSoflanSpeed)
             output.Append(note.FixedSoflanSpeed.ToString("G9", CultureInfo.InvariantCulture));

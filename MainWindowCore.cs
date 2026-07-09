@@ -1533,9 +1533,14 @@ public partial class MainWindow : Window
 
     private static string FormatHSpeedLabel(HSpeedDisplayEvent hSpeedEvent, bool shouldDrawSoflanGroup)
     {
-        var soflanGroupText = shouldDrawSoflanGroup ? $"[{hSpeedEvent.SoflanGroup}]" : string.Empty;
+        var soflanGroupText = shouldDrawSoflanGroup ? $"[{FormatHSpeedGroupLabel(hSpeedEvent.SoflanGroup)}]" : string.Empty;
         var hSpeedText = hSpeedEvent.HSpeed.ToString("0.###", CultureInfo.InvariantCulture);
         return $"{soflanGroupText}{hSpeedText}x";
+    }
+
+    private static string FormatHSpeedGroupLabel(int soflanGroup)
+    {
+        return soflanGroup < 0 ? "?" : soflanGroup.ToString(CultureInfo.InvariantCulture);
     }
 
     private static StringFormat CreateHSpeedLabelFormat(StringAlignment alignment, StringAlignment lineAlignment)

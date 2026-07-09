@@ -159,7 +159,7 @@ namespace MajdataEdit.SyntaxModule
                     }
 
                     var body = simaiStr[(i + 1)..endIndex].Replace("\n", "");
-                    if (!HSpeedSyntaxCheck(body, out var hasGroup))
+                    if (!HSpeedSyntaxCheck(body, out var hasGroup, out var isAutoGroup))
                     {
                         cleaned = string.Empty;
                         return false;
@@ -186,6 +186,11 @@ namespace MajdataEdit.SyntaxModule
                         {
                             insideHsGroup = true;
                             i = nextIdx;
+                        }
+                        else if (isAutoGroup)
+                        {
+                            cleaned = string.Empty;
+                            return false;
                         }
                         else
                         {
@@ -226,9 +231,10 @@ namespace MajdataEdit.SyntaxModule
             return index + 1 < simaiStr.Length && simaiStr[index] == 'H' && simaiStr[index + 1] == 'S';
         }
 
-        static bool HSpeedSyntaxCheck(string body, out bool hasGroup)
+        static bool HSpeedSyntaxCheck(string body, out bool hasGroup, out bool isAutoGroup)
         {
             hasGroup = false;
+            isAutoGroup = false;
             if (string.IsNullOrEmpty(body) || body.Length < 3 || body[0] != 'H' || body[1] != 'S')
                 return false;
 
@@ -240,6 +246,11 @@ namespace MajdataEdit.SyntaxModule
             if (starCount == 0)
             {
                 hasGroup = true;
+                if (hsBody == "?")
+                {
+                    isAutoGroup = true;
+                    return false;
+                }
                 return int.TryParse(hsBody, out var group) && group > 0;
             }
 
@@ -249,9 +260,15 @@ namespace MajdataEdit.SyntaxModule
 
             if (!string.IsNullOrEmpty(groupBody))
             {
-                if (!int.TryParse(groupBody, out var group) || group < 0)
+                if (groupBody == "?")
+                {
+                    hasGroup = true;
+                    isAutoGroup = true;
+                }
+                else if (!int.TryParse(groupBody, out var group) || group < 0)
                     return false;
-                hasGroup = true;
+                else
+                    hasGroup = true;
             }
 
             return HSpeedValueSyntaxCheck(valueBody);
