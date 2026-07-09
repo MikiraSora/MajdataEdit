@@ -45,6 +45,7 @@ Improve HSpeed-related rendering in the spectrum view:
 - Label text keeps the existing group-id rule:
   - if only group `0` is present, show speed as `1.5x`;
   - if any non-zero group is present, show `[g]1.5x`.
+  - auto/undefined HS groups created by `<HS?*x>(...)` are stored internally as negative group ids and shown as `[?]1.5x` instead of exposing the internal negative id.
 - Endpoint labels are always drawn for each grouped sequence.
 - Extra extrema labels only apply to internal points.
 - If the sequence maximum or minimum is at an endpoint, do not draw a duplicate extrema label.
