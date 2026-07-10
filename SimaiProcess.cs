@@ -24,6 +24,7 @@ internal static class SimaiProcess
     ///     the timing points made by "," in maidata
     /// </summary>
     public static List<SimaiTimingPoint> timinglist = new();
+    public static EachNoteAnalysis EachAnalysis { get; private set; } = EachNoteAnalysis.Empty;
     public static int HSpeedInterpolationGrid = 32;
 
     /// <summary>
@@ -39,6 +40,7 @@ internal static class SimaiProcess
         levels = new string[7];
         notelist = new List<SimaiTimingPoint>();
         timinglist = new List<SimaiTimingPoint>();
+        EachAnalysis = EachNoteAnalysis.Empty;
     }
 
     /// <summary>
@@ -141,6 +143,7 @@ internal static class SimaiProcess
 
             notelist = chart.NoteTimings.ToArray().ToList();
             timinglist = chart.CommaTimings.ToArray().ToList();
+            EachAnalysis = EachNoteAnalysis.Analyze(notelist);
 
             return requestTime;
         }

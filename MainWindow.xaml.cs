@@ -727,6 +727,23 @@ public partial class MainWindow : Window
         FumenContent.Focus();
     }
 
+    private void DrawHSpeedChangesCheck_CheckedChanged(object sender, RoutedEventArgs e)
+    {
+        if (isReadingEditorSetting)
+        {
+            return;
+        }
+
+        if (editorSetting != null)
+        {
+            editorSetting.DrawHSpeedChanges = DrawHSpeedChangesCheck.IsChecked == true;
+            SaveEditorSetting();
+        }
+
+        DrawWave();
+        FumenContent.Focus();
+    }
+
     private void ColorObjectsByHSpeedGroupCheck_CheckedChanged(object sender, RoutedEventArgs e)
     {
         if (isReadingEditorSetting)

@@ -198,6 +198,12 @@
                                   Foreground="{DynamicResource ButtonForeground}" HorizontalContentAlignment="Right"
                                   Click="FollowPlayCheck_Click" Background="{DynamicResource ButtonsBackground}"
                                   Template="{DynamicResource DarkCheck}" />
+                        <CheckBox x:Name="DrawHSpeedChangesCheck" Content="{lex:Loc DrawHSpeedChanges}" FontSize="11"
+                                  Foreground="{DynamicResource ButtonForeground}" HorizontalContentAlignment="Right"
+                                  Checked="DrawHSpeedChangesCheck_CheckedChanged"
+                                  Unchecked="DrawHSpeedChangesCheck_CheckedChanged"
+                                  Background="{DynamicResource ButtonsBackground}"
+                                  Template="{DynamicResource DarkCheck}" />
                         <CheckBox x:Name="ColorObjectsByHSpeedGroupCheck" FontSize="11"
                                   Foreground="{DynamicResource ButtonForeground}" HorizontalContentAlignment="Right"
                                   ToolTip="{lex:Loc ColorObjectsByHSpeedGroup}"

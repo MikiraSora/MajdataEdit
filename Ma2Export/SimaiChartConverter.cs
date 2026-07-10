@@ -348,14 +348,7 @@ public sealed class SimaiChartConverter
         totalOutput.AppendLine($"T_JUDGE_SLD\t{numSlides}");
         totalOutput.AppendLine($"T_JUDGE_ALL\t{judgeAll}");
 
-        var numEachPairs = timingPoints.Count(x => x.Notes.Count(note =>
-        {
-            return note.Type switch
-            {
-                SimaiNoteType.Tap or SimaiNoteType.Hold or SimaiNoteType.Touch or SimaiNoteType.TouchHold => true,
-                _ => false
-            };
-        }) > 1);
+        var numEachPairs = EachNoteAnalysis.Analyze(timingPoints).GroupCount;
         totalOutput.AppendLine($"TTM_EACHPAIRS\t{numEachPairs}");
 
         var totalMaxScoreTap = 500 * numTaps;

@@ -581,6 +581,7 @@ public partial class MainWindow : Window
             ViewerCover.Content = editorSetting.backgroundCover.ToString();
             ViewerSpeed.Content = editorSetting.playSpeed.ToString("F1"); // 转化为形如"7.0", "9.5"这样的速度
             ViewerTouchSpeed.Content = editorSetting.touchSpeed.ToString("F1");
+            DrawHSpeedChangesCheck.IsChecked = editorSetting.DrawHSpeedChanges;
             ColorObjectsByHSpeedGroupCheck.IsChecked = editorSetting.ColorObjectsByHSpeedGroup;
 
             chartChangeTimer.Interval = editorSetting.ChartRefreshDelay; // 设置更新延迟
@@ -863,12 +864,12 @@ public partial class MainWindow : Window
                 if (note == null) break;
                 if (note.Timing - currentTime > deltatime) continue;
                 var notes = note.Notes;
-                var isEach = notes.Count(o => !o.IsSlideNoHead) > 1;
 
                 var x = ((float)(note.Timing / step) - startindex) * linewidth;
 
                 foreach (var noteD in notes)
                 {
+                    var isEach = SimaiProcess.EachAnalysis.Contains(noteD);
                     var shouldColorByHSpeedGroup = editorSetting?.ColorObjectsByHSpeedGroup == true;
                     var hSpeedGroupColor = shouldColorByHSpeedGroup
                         ? GetObjectHSpeedGroupColor(noteD.SoflanGroup)
@@ -917,7 +918,7 @@ public partial class MainWindow : Window
                         pen.Width = 2;
                         pen.Color = shouldColorByHSpeedGroup
                             ? hSpeedGroupColor
-                            : (isEach ? Color.Gold : Color.DeepSkyBlue);
+                            : GetTouchHeadColor(noteD, isEach);
                         graphics.DrawRectangle(pen, x - 2.5f, y - 2.5f, 5, 5);
                     }
 
@@ -961,6 +962,15 @@ public partial class MainWindow : Window
                             ? Color.FromArgb(200, hSpeedGroupColor)
                             : Color.FromArgb(200, 0, 140, 254);
                         graphics.DrawLine(pen, x, y, x + xDelta, y);
+
+                        if (isEach || noteD.IsBreak)
+                        {
+                            pen.Width = 2;
+                            pen.Color = shouldColorByHSpeedGroup
+                                ? hSpeedGroupColor
+                                : GetTouchHeadColor(noteD, isEach);
+                            graphics.DrawRectangle(pen, x - 2.5f, y - 2.5f, 5, 5);
+                        }
                     }
 
                     if (noteD.Type == SimaiNoteType.Slide)
@@ -978,7 +988,7 @@ public partial class MainWindow : Window
 
                         pen.Color = shouldColorByHSpeedGroup
                             ? hSpeedGroupColor
-                            : GetSlideColor(noteD, notes);
+                            : GetSlideColor(noteD);
                         pen.DashStyle = DashStyle.Dot;
                         var xSlide = (float)(noteD.SlideStartTime / step - startindex) * linewidth;
                         var xSlideRight = (float)(noteD.SlideTime / step) * linewidth + xSlide;
@@ -1627,7 +1637,7 @@ public partial class MainWindow : Window
 
     private static Color GetTapStarColor(SimaiNote note, bool isEach)
     {
-        if (note.IsBreak) return Color.OrangeRed;
+        if (note.IsBreak || note.IsSlideBreak) return Color.OrangeRed;
         return isEach ? Color.Gold : Color.DeepSkyBlue;
     }
 
@@ -1637,10 +1647,16 @@ public partial class MainWindow : Window
         return isEach ? Color.Gold : Color.LightPink;
     }
 
-    private static Color GetSlideColor(SimaiNote note, SimaiNote[] notes)
+    private static Color GetTouchHeadColor(SimaiNote note, bool isEach)
+    {
+        if (note.IsBreak) return Color.OrangeRed;
+        return isEach ? Color.Gold : Color.DeepSkyBlue;
+    }
+
+    private static Color GetSlideColor(SimaiNote note)
     {
         if (note.IsSlideBreak) return Color.OrangeRed;
-        return notes.Count(o => o.Type == SimaiNoteType.Slide) >= 2 ? Color.Gold : Color.SkyBlue;
+        return Color.SkyBlue;
     }
 
     private readonly record struct HSpeedDisplayEvent(double Time, int SoflanGroup, float HSpeed, float X, float Y);

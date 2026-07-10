@@ -132,6 +132,7 @@ public partial class EditorSettingPanel : Window
         window.editorSetting!.comboStatusType = (EditorComboIndicator)Enum.GetValues(
             window.editorSetting!.comboStatusType.GetType()
         ).GetValue(ComboDisplay.SelectedIndex)!;
+        window.DrawHSpeedChangesCheck.IsChecked = window.editorSetting.DrawHSpeedChanges;
         window.SaveEditorSetting();
 
         window.ViewerCover.Content = window.editorSetting.backgroundCover.ToString();
