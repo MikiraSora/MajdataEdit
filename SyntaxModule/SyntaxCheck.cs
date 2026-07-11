@@ -140,6 +140,7 @@ namespace MajdataEdit.SyntaxModule
         {
             var sb = new System.Text.StringBuilder(simaiStr.Length);
             var insideHsGroup = false;
+            var hasValidBpm = false;
 
             for (var i = 0; i < simaiStr.Length; i++)
             {
@@ -165,7 +166,8 @@ namespace MajdataEdit.SyntaxModule
                         return false;
                     }
                     body = body.Replace("\n", "");
-                    if (!HSpeedSyntaxCheck(body, out var hasGroup, out var isAutoGroup))
+                    if (!HSpeedSyntaxCheck(body, out var hasGroup, out var isAutoGroup, out var hasDuration) ||
+                        (hasDuration && !hasValidBpm))
                     {
                         cleaned = string.Empty;
                         return false;
@@ -206,6 +208,22 @@ namespace MajdataEdit.SyntaxModule
                     continue;
                 }
 
+                if (simaiStr[i] == '(')
+                {
+                    var bpmEndIndex = simaiStr.IndexOf(')', i + 1);
+                    if (bpmEndIndex != -1)
+                    {
+                        var bpmBody = simaiStr[(i + 1)..bpmEndIndex].Trim();
+                        hasValidBpm = float.TryParse(bpmBody,
+                                                     NumberStyles.Float,
+                                                     CultureInfo.InvariantCulture,
+                                                     out var bpm) &&
+                                      !float.IsNaN(bpm) &&
+                                      !float.IsInfinity(bpm) &&
+                                      bpm > 0;
+                    }
+                }
+
                 if (insideHsGroup && simaiStr[i] == ')')
                 {
                     insideHsGroup = false;
@@ -237,10 +255,11 @@ namespace MajdataEdit.SyntaxModule
             return index + 1 < simaiStr.Length && simaiStr[index] == 'H' && simaiStr[index + 1] == 'S';
         }
 
-        static bool HSpeedSyntaxCheck(string body, out bool hasGroup, out bool isAutoGroup)
+        static bool HSpeedSyntaxCheck(string body, out bool hasGroup, out bool isAutoGroup, out bool hasDuration)
         {
             hasGroup = false;
             isAutoGroup = false;
+            hasDuration = false;
             if (string.IsNullOrEmpty(body) || body.Length < 3 || body[0] != 'H' || body[1] != 'S')
                 return false;
 
@@ -277,6 +296,7 @@ namespace MajdataEdit.SyntaxModule
                     hasGroup = true;
             }
 
+            hasDuration = valueBody.Contains('[') || valueBody.Contains(']') || valueBody.Contains('~');
             return HSpeedValueSyntaxCheck(valueBody);
         }
 
@@ -293,7 +313,7 @@ namespace MajdataEdit.SyntaxModule
 
                 return !body.Contains('[') &&
                        !body.Contains(']') &&
-                       float.TryParse(body, out _);
+                       float.TryParse(body, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
             }
 
             var segments = body.Split('~');
@@ -325,7 +345,7 @@ namespace MajdataEdit.SyntaxModule
             var speedBody = body[..durationStart].Trim();
             var durationBody = body[(durationStart + 1)..durationEnd].Trim();
             var easingBody = body[(durationEnd + 1)..].Trim();
-            return float.TryParse(speedBody, out _) &&
+            return float.TryParse(speedBody, NumberStyles.Float, CultureInfo.InvariantCulture, out _) &&
                    HSpeedDurationSyntaxCheck(durationBody) &&
                    HSpeedEasingSyntaxCheck(easingBody);
         }
@@ -423,18 +443,72 @@ namespace MajdataEdit.SyntaxModule
             if (body.Contains("#"))
             {
                 if (body[0] == '#')
-                    return double.TryParse(body[1..], out var seconds) && seconds > 0;
+                    return TryParseHSpeedAbsoluteDuration(body[1..], out _);
 
                 var splitBody = body.Split("#");
                 if (splitBody.Length != 2)
                     return false;
 
-                return double.TryParse(splitBody[0], out var bpm) &&
+                return double.TryParse(splitBody[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var bpm) &&
+                       !double.IsNaN(bpm) &&
+                       !double.IsInfinity(bpm) &&
                        bpm > 0 &&
                        RatioSyntaxCheckPositive(splitBody[1]);
             }
 
             return RatioSyntaxCheckPositive(body);
+        }
+
+        static bool TryParseHSpeedAbsoluteDuration(string body, out double duration)
+        {
+            duration = default;
+            body = body.Trim();
+            if (string.IsNullOrEmpty(body) || body[0] == '-' ||
+                !double.TryParse(body, NumberStyles.Float, CultureInfo.InvariantCulture, out duration) ||
+                double.IsNaN(duration) ||
+                double.IsInfinity(duration) ||
+                duration < 0)
+            {
+                return false;
+            }
+
+            return duration != 0 || IsZeroHSpeedNumericLiteral(body);
+        }
+
+        static bool IsZeroHSpeedNumericLiteral(string body)
+        {
+            body = body.Trim();
+            if (body.StartsWith('+'))
+            {
+                body = body[1..];
+            }
+
+            var lowerExponentIndex = body.IndexOf('e');
+            var upperExponentIndex = body.IndexOf('E');
+            var exponentIndex = lowerExponentIndex == -1
+                ? upperExponentIndex
+                : upperExponentIndex == -1
+                    ? lowerExponentIndex
+                    : Math.Min(lowerExponentIndex, upperExponentIndex);
+            var mantissa = exponentIndex == -1 ? body : body[..exponentIndex];
+            var hasDigit = false;
+            foreach (var c in mantissa)
+            {
+                if (c == '.')
+                {
+                    continue;
+                }
+                if (c < '0' || c > '9')
+                {
+                    return false;
+                }
+                hasDigit = true;
+                if (c != '0')
+                {
+                    return false;
+                }
+            }
+            return hasDigit;
         }
 
         static bool SpecialSyntaxCheck(ref string simaiStr,int posX,int posY)
