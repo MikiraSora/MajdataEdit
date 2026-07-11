@@ -158,7 +158,13 @@ namespace MajdataEdit.SyntaxModule
                         return false;
                     }
 
-                    var body = simaiStr[(i + 1)..endIndex].Replace("\n", "");
+                    var body = simaiStr[(i + 1)..endIndex];
+                    if (HasLineBreakInsideHSpeedEasingName(body))
+                    {
+                        cleaned = string.Empty;
+                        return false;
+                    }
+                    body = body.Replace("\n", "");
                     if (!HSpeedSyntaxCheck(body, out var hasGroup, out var isAutoGroup))
                     {
                         cleaned = string.Empty;
@@ -313,14 +319,100 @@ namespace MajdataEdit.SyntaxModule
             var durationEnd = body.IndexOf(']');
             if (durationStart <= 0 ||
                 durationEnd == -1 ||
-                durationEnd != body.Length - 1 ||
                 body[(durationEnd + 1)..].Contains(']'))
                 return false;
 
             var speedBody = body[..durationStart].Trim();
             var durationBody = body[(durationStart + 1)..durationEnd].Trim();
+            var easingBody = body[(durationEnd + 1)..].Trim();
             return float.TryParse(speedBody, out _) &&
-                   HSpeedDurationSyntaxCheck(durationBody);
+                   HSpeedDurationSyntaxCheck(durationBody) &&
+                   HSpeedEasingSyntaxCheck(easingBody);
+        }
+
+        static bool HasLineBreakInsideHSpeedEasingName(string body)
+        {
+            var segmentStart = 0;
+            while (segmentStart < body.Length)
+            {
+                var durationEndOffset = body.IndexOf(']', segmentStart);
+                if (durationEndOffset == -1)
+                    return false;
+
+                var easingStart = durationEndOffset + 1;
+                var separatorIndex = body.IndexOf('~', easingStart);
+                var segmentEnd = separatorIndex == -1 ? body.Length : separatorIndex;
+                var easingBody = body[easingStart..segmentEnd].Trim();
+                if (easingBody.Contains('\r') || easingBody.Contains('\n'))
+                    return true;
+
+                if (separatorIndex == -1)
+                    return false;
+                segmentStart = separatorIndex + 1;
+            }
+
+            return false;
+        }
+
+        static bool HSpeedEasingSyntaxCheck(string body)
+        {
+            body = body.Trim();
+            if (string.IsNullOrEmpty(body))
+                return true;
+
+            if (body.Any(c => !char.IsLetter(c)))
+                return false;
+
+            if (body.Equals("linear", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            string easingName;
+            if (body.StartsWith("ease", StringComparison.OrdinalIgnoreCase))
+                easingName = body;
+            else if (body.StartsWith("io", StringComparison.OrdinalIgnoreCase))
+                easingName = "EaseInOut" + body[2..];
+            else if (body.StartsWith("i", StringComparison.OrdinalIgnoreCase))
+                easingName = "EaseIn" + body[1..];
+            else if (body.StartsWith("o", StringComparison.OrdinalIgnoreCase))
+                easingName = "EaseOut" + body[1..];
+            else
+                return false;
+
+            return Enum.TryParse<HSpeedEasing>(easingName, true, out _);
+        }
+
+        enum HSpeedEasing
+        {
+            EaseInQuad,
+            EaseOutQuad,
+            EaseInOutQuad,
+            EaseInCubic,
+            EaseOutCubic,
+            EaseInOutCubic,
+            EaseInQuart,
+            EaseOutQuart,
+            EaseInOutQuart,
+            EaseInQuint,
+            EaseOutQuint,
+            EaseInOutQuint,
+            EaseInSine,
+            EaseOutSine,
+            EaseInOutSine,
+            EaseInExpo,
+            EaseOutExpo,
+            EaseInOutExpo,
+            EaseInCirc,
+            EaseOutCirc,
+            EaseInOutCirc,
+            EaseInBack,
+            EaseOutBack,
+            EaseInOutBack,
+            EaseInElastic,
+            EaseOutElastic,
+            EaseInOutElastic,
+            EaseInBounce,
+            EaseOutBounce,
+            EaseInOutBounce
         }
 
         static bool HSpeedDurationSyntaxCheck(string body)
