@@ -485,7 +485,9 @@ public sealed class SimaiChartConverter
     {
         return note.Type switch
         {
-            SimaiNoteType.Tap => GetNormalBreakExId(note, "TAP"),
+            // Force star (simai `$` / `$$`) renders a tap as a star head, so emit STR instead of TAP.
+            // ma2 has no rotation field for a standalone star, so fake rotation (`$$`) degrades to a static STR.
+            SimaiNoteType.Tap => GetNormalBreakExId(note, note.IsForceStar ? "STR" : "TAP"),
             SimaiNoteType.Slide => GetNormalBreakExId(note, "STR"),
             SimaiNoteType.Hold => GetNormalBreakExId(note, "HLD"),
             SimaiNoteType.Touch => "NMTTP",
