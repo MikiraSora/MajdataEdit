@@ -116,9 +116,9 @@ internal static class Mirror
     {
         // NOTE: 类似 1-5[8:1]{16}, 这样的字符串 可以被SimaiProcess处理 但无法被正确镜像
         // 我认为这是对的 因为这种语法本身就是错误的 只不过SimaiProcess没有做处理而已 不能因此而妥协 以上
-        if (ContainsHSpeedCommand(str))
+        if (ContainsSpeedCommand(str))
         {
-            throw new InvalidOperationException("包含 HS 变速命令的谱面不支持镜像");
+            throw new InvalidOperationException("包含 HS/SV 变速命令的谱面不支持镜像");
         }
 
         StringBuilder resultString = new StringBuilder();   // 最终的结果
@@ -208,7 +208,7 @@ internal static class Mirror
         return resultString.ToString();
     }
 
-    private static bool ContainsHSpeedCommand(string str)
+    private static bool ContainsSpeedCommand(string str)
     {
         for (var i = 0; i < str.Length; i++)
         {
@@ -223,7 +223,9 @@ internal static class Mirror
                 index++;
             }
 
-            if (index + 1 < str.Length && str[index] == 'H' && str[index + 1] == 'S')
+            if (index + 1 < str.Length &&
+                ((str[index] == 'H' && str[index + 1] == 'S') ||
+                 (str[index] == 'S' && str[index + 1] == 'V')))
             {
                 return true;
             }

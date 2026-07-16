@@ -67,7 +67,7 @@ namespace MajdataEdit.SyntaxModule
                 int column = 1;
                 if (!TryRemoveHSpeedMarkupForSyntaxCheck(str, out str))
                 {
-                    addError("HS", -1, -1);
+                    addError("HS/SV", -1, -1);
                     return;
                 }
                 var simaiChart = str.Split(",");
@@ -144,7 +144,7 @@ namespace MajdataEdit.SyntaxModule
 
             for (var i = 0; i < simaiStr.Length; i++)
             {
-                if (simaiStr[i] == '<' && IsHSpeedTagAt(simaiStr, i))
+                if (simaiStr[i] == '<' && IsSpeedTagAt(simaiStr, i))
                 {
                     if (insideHsGroup)
                     {
@@ -160,13 +160,21 @@ namespace MajdataEdit.SyntaxModule
                     }
 
                     var body = simaiStr[(i + 1)..endIndex];
-                    if (HasLineBreakInsideHSpeedEasingName(body))
+                    var normalizedBody = body.Replace("\n", "");
+                    var isSV = normalizedBody.Length >= 2 && normalizedBody[0] == 'S' && normalizedBody[1] == 'V';
+                    if (!isSV && HasLineBreakInsideHSpeedEasingName(body))
                     {
                         cleaned = string.Empty;
                         return false;
                     }
-                    body = body.Replace("\n", "");
-                    if (!HSpeedSyntaxCheck(body, out var hasGroup, out var isAutoGroup, out var hasDuration) ||
+                    body = normalizedBody;
+                    var hasGroup = false;
+                    var isAutoGroup = false;
+                    var hasDuration = false;
+                    var isValidSpeedTag = isSV
+                        ? SVSyntaxCheck(body)
+                        : HSpeedSyntaxCheck(body, out hasGroup, out isAutoGroup, out hasDuration);
+                    if (!isValidSpeedTag ||
                         (hasDuration && !hasValidBpm))
                     {
                         cleaned = string.Empty;
@@ -182,6 +190,26 @@ namespace MajdataEdit.SyntaxModule
                     }
 
                     i = endIndex;
+                    if (isSV)
+                    {
+                        // Keep ordinary BPM parentheses valid while rejecting note group scopes.
+                        var nextIdx = i + 1;
+                        while (nextIdx < simaiStr.Length && char.IsWhiteSpace(simaiStr[nextIdx]))
+                        {
+                            nextIdx++;
+                        }
+                        if (nextIdx < simaiStr.Length && simaiStr[nextIdx] == '(')
+                        {
+                            var closeIndex = simaiStr.IndexOf(')', nextIdx + 1);
+                            var hasBpmBody = closeIndex > nextIdx + 1 &&
+                                             IsStrictBpmLiteral(simaiStr[(nextIdx + 1)..closeIndex]);
+                            if (!hasBpmBody)
+                            {
+                                cleaned = string.Empty;
+                                return false;
+                            }
+                        }
+                    }
                     if (hasGroup)
                     {
                         var nextIdx = i + 1;
@@ -239,11 +267,11 @@ namespace MajdataEdit.SyntaxModule
                 return false;
             }
 
-            cleaned = sb.ToString();
+            cleaned = sb.ToString().Replace("c", string.Empty);
             return true;
         }
 
-        static bool IsHSpeedTagAt(string simaiStr, int index)
+        static bool IsSpeedTagAt(string simaiStr, int index)
         {
             if (index < 0 || index >= simaiStr.Length || simaiStr[index] != '<')
                 return false;
@@ -252,7 +280,38 @@ namespace MajdataEdit.SyntaxModule
             while (index < simaiStr.Length && char.IsWhiteSpace(simaiStr[index]))
                 index++;
 
-            return index + 1 < simaiStr.Length && simaiStr[index] == 'H' && simaiStr[index + 1] == 'S';
+            return index + 1 < simaiStr.Length &&
+                   ((simaiStr[index] == 'H' && simaiStr[index + 1] == 'S') ||
+                    (simaiStr[index] == 'S' && simaiStr[index + 1] == 'V'));
+        }
+
+        static bool SVSyntaxCheck(string body)
+        {
+            if (string.IsNullOrEmpty(body) || body.Length < 4 || body[0] != 'S' || body[1] != 'V')
+                return false;
+
+            var svBody = body[2..];
+            if (svBody.Count(c => c == '*') != 1 || svBody[0] != '*')
+                return false;
+
+            var valueBody = svBody[1..].Trim();
+            return !string.IsNullOrEmpty(valueBody) &&
+                   !valueBody.Contains('[') &&
+                   !valueBody.Contains(']') &&
+                   !valueBody.Contains('~') &&
+                   float.TryParse(valueBody, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+        }
+
+        static bool IsStrictBpmLiteral(string body)
+        {
+            body = body.Trim();
+            if (string.IsNullOrEmpty(body) || body.Contains(','))
+                return false;
+
+            return float.TryParse(body,
+                                  NumberStyles.Float,
+                                  CultureInfo.InvariantCulture,
+                                  out _);
         }
 
         static bool HSpeedSyntaxCheck(string body, out bool hasGroup, out bool isAutoGroup, out bool hasDuration)
@@ -781,6 +840,7 @@ namespace MajdataEdit.SyntaxModule
         static bool NoteSyntaxCheck(string noteStr,int posX,int posY)
         {
             var originalNoteStr = noteStr;
+            noteStr = noteStr.Replace("c", string.Empty);
             var hasFixedSoflan = false;
             if (!TryStripFixedSoflanModifier(ref noteStr, out hasFixedSoflan))
             {
