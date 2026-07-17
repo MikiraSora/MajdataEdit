@@ -469,6 +469,9 @@ Click OK to start render.</value>
   <data name="PlayMineSoundEffects" xml:space="preserve">
     <value>Play Mine object sound effects</value>
   </data>
+  <data name="UseLegacyUserSpeed" xml:space="preserve">
+    <value>Use legacy View user-speed mechanism</value>
+  </data>
   <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
     <value>Draw empty-content HSpeed markers</value>
   </data>

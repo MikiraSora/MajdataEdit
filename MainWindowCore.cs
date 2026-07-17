@@ -1981,6 +1981,7 @@ public partial class MainWindow : Window
         jsonStruct.designer = SimaiProcess.designer!;
         jsonStruct.difficulty = SimaiProcess.GetDifficultyText(selectedDifficulty);
         jsonStruct.diffNum = selectedDifficulty;
+        jsonStruct.useLegacyUserSpeed = editorSetting!.UseLegacyUserSpeed;
 
         var json = JsonConvert.SerializeObject(jsonStruct);
         var path = maidataDir + "/majdata.json";
@@ -2030,6 +2031,7 @@ public partial class MainWindow : Window
         jsonStruct.designer = SimaiProcess.designer!;
         jsonStruct.difficulty = SimaiProcess.GetDifficultyText(selectedDifficulty);
         jsonStruct.diffNum = selectedDifficulty;
+        jsonStruct.useLegacyUserSpeed = editorSetting!.UseLegacyUserSpeed;
 
         var json = JsonConvert.SerializeObject(jsonStruct);
         var path = maidataDir + "/majdata.json";

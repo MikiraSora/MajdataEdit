@@ -461,6 +461,9 @@
   <data name="PlayMineSoundEffects" xml:space="preserve">
     <value>播放 Mine 物件音效</value>
   </data>
+  <data name="UseLegacyUserSpeed" xml:space="preserve">
+    <value>View 使用旧版用户速度机制</value>
+  </data>
   <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
     <value>绘制空内容变速标记</value>
   </data>

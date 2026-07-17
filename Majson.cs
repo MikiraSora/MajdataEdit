@@ -11,6 +11,7 @@ internal class Majson
     public string level = "1";
     public List<SimaiTimingPoint> timingList = new();
     public string title = "default";
+    public bool useLegacyUserSpeed = false;
 }
 
 internal class EditRequestjson
@@ -116,6 +117,7 @@ public class EditorSetting
     public bool DrawHSpeedChanges = true;
     public bool DrawEmptyHSpeedChanges = true;
     public bool PlayMineSoundEffects = false;
+    public bool UseLegacyUserSpeed = false;
     public int HSpeedDisplayGroupDistancePx = 18;
     public int HSpeedDisplayLineWidthPx = 2;
     public int HSpeedDisplayLabelFontSize = 9;

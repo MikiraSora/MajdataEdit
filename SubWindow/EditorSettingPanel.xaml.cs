@@ -68,6 +68,7 @@ public partial class EditorSettingPanel : Window
         AutoUpdate.IsChecked = window.editorSetting.AutoCheckUpdate;
         SmoothSlideAnime.IsChecked = window.editorSetting.SmoothSlideAnime;
         PlayMineSoundEffects.IsChecked = window.editorSetting.PlayMineSoundEffects;
+        UseLegacyUserSpeed.IsChecked = window.editorSetting.UseLegacyUserSpeed;
         DrawHSpeedChanges.IsChecked = window.editorSetting.DrawHSpeedChanges;
         DrawEmptyHSpeedChanges.IsChecked = window.editorSetting.DrawEmptyHSpeedChanges;
         HSpeedDisplayGroupDistancePx.Text = window.editorSetting.HSpeedDisplayGroupDistancePx.ToString();
@@ -122,6 +123,7 @@ public partial class EditorSettingPanel : Window
         window.editorSetting!.AutoCheckUpdate = (bool) AutoUpdate.IsChecked!;
         window.editorSetting!.SmoothSlideAnime = (bool) SmoothSlideAnime.IsChecked!;
         window.editorSetting!.PlayMineSoundEffects = (bool)PlayMineSoundEffects.IsChecked!;
+        window.editorSetting!.UseLegacyUserSpeed = (bool)UseLegacyUserSpeed.IsChecked!;
         window.editorSetting!.DrawHSpeedChanges = (bool)DrawHSpeedChanges.IsChecked!;
         window.editorSetting!.DrawEmptyHSpeedChanges = (bool)DrawEmptyHSpeedChanges.IsChecked!;
         window.editorSetting!.HSpeedDisplayGroupDistancePx = Math.Clamp(int.Parse(HSpeedDisplayGroupDistancePx.Text), 1, 200);
