@@ -853,6 +853,20 @@ namespace MajdataEdit.SyntaxModule
                 return false;
             }
 
+            // MajSimaiX consumes the lowercase `m` flag before note-level parsing.
+            // Strip it after FixedSoflan so invalid values such as `1@m` still fail.
+            noteStr = noteStr.Replace("m", string.Empty);
+            if (noteStr.Length == 0)
+            {
+                ErrorList.Add(new SimaiErrorInfo(posX, posY,
+                    string.Format(
+                        MainWindow.GetLocalizedString("SyntaxError"),
+                        originalNoteStr,
+                        posY,
+                        posX)));
+                return false;
+            }
+
             if (IsTap(noteStr))
                 return true;
             else if (IsHold(noteStr))
@@ -964,13 +978,10 @@ namespace MajdataEdit.SyntaxModule
         /// <returns></returns>
         static bool HoldSyntaxCheck(string holdStr)
         {
-            //特殊：2h之类的短Hold，前面已经检查过一次，无需再次检查
-            if (holdStr.Length <= 4)
+            // Short holds do not have a duration body. IsHold has already checked
+            // the header, including touch-hold headers.
+            if (!holdStr.Contains('['))
             {
-                //防止出现2h[],2h[,2hxx这种傻蛋情况
-                foreach (var s in holdStr[2..])
-                    if (s is not ('b' or 'x'))
-                        return false;
                 return true;
             }
 
@@ -1416,47 +1427,58 @@ namespace MajdataEdit.SyntaxModule
         /// <returns></returns>
         static bool IsHold(string s)
         {
-            int index = 0;
-            var _s = s.Split("[");
-            string header = _s[0];
-            bool isTouch = header[0] == 'C';
+            var bracketIndex = s.IndexOf('[');
+            var header = bracketIndex >= 0 ? s[..bracketIndex] : s;
+            if (header.Length < 2)
+                return false;
 
-            if (!isTouch && !int.TryParse(s[0..1], out index))//总是检查第1位
-                return false;
-            if (!isTouch && !PointCheck(index))//错误键位直接返回
-                return false;
-            if (s.Length < 2 || header.Length < 2)
-                return false;
-            else if (header is ("Ch" or "C1h" or "Chf" or "C1hf"))//TouchHold特例
+            if (IsTouchHoldHeader(header))
                 return true;
-            //Hold严格判定：第二位必须是'h'，'b'，'x'不限制位置
-            //妥协一下，改为松判定
-            //else if (header[1] != 'h')//第2位不是"h"直接返回
-            //    return false;
 
-            //Hold松判定：'h','b','x'不限定位置
-            return header.Length switch
+            if (!int.TryParse(header[0..1], out var index) || !PointCheck(index))
+                return false;
+
+            var flags = header[1..];
+            if (!flags.Contains('h'))
+                return false;
+
+            foreach (var flag in flags)
             {
-                2 => header[1] is 'h',
-                3 => header.Contains('h') && (header.Contains('b') || header.Contains('x')),
-                4 => header.Contains('h') && header.Contains('b') && header.Contains('x'),
-                _ => false
-            };
+                if (flag is not ('h' or 'b' or 'x'))
+                    return false;
+            }
 
-            //Hold严格判定：第二位必须是'h'，'b'，'x'不限制位置
-            //if (header.Length == 2)// e.g. 2h
-            //    return true;
-            //else if (header.Length == 3)// e.g. 2hb,2hx
-            //    return s[2] is 'b' or 'x';
-            //else if (header.Length == 4)// e.g. 2hbx,2hxb
-            //{
-            //    var isBreak = s[2] is 'b' || s[3] is 'b';
-            //    var isHanabi = s[2] is 'x' || s[3] is 'x';
+            return true;
+        }
 
-            //    return isBreak && isHanabi;
-            //}
+        static bool IsTouchHoldHeader(string header)
+        {
+            if (header.Length < 2 || !SensorList.Contains(header[0]))
+                return false;
 
-            //return false;
+            int flagsStart;
+            if (header[0] == 'C')
+            {
+                flagsStart = header.Length > 1 && header[1] == '1' ? 2 : 1;
+            }
+            else
+            {
+                if (header.Length < 3 || !int.TryParse(header[1..2], out var position) || !PointCheck(position))
+                    return false;
+                flagsStart = 2;
+            }
+
+            var flags = header[flagsStart..];
+            if (!flags.Contains('h'))
+                return false;
+
+            foreach (var flag in flags)
+            {
+                if (flag is not ('h' or 'b' or 'x' or 'f'))
+                    return false;
+            }
+
+            return true;
         }
         /// <summary>
         /// 判断是否为Slide，不检查Slide参数，只检查头部
@@ -1505,23 +1527,35 @@ namespace MajdataEdit.SyntaxModule
         /// <returns></returns>
         static bool IsTouch(string s)
         {
-            char sensor = s[0];
-
-            if (s.Length is not (1 or 2 or 3))//Touch长度只能是1,2或3 ; e.g. C,B1,B1f
+            if (string.IsNullOrEmpty(s) || s.Contains('['))
                 return false;
+
+            char sensor = s[0];
 
             if (s.Length == 1)// C
                 return s[0] == 'C';
             else if (!SensorList.Contains(sensor))// 判断触控区号是否合法
                 return false;
-            else if (s.Length == 2 && s[0] == 'C')// C1 or Cf
-                return s[1] is '1' or 'f';
-            else if (s.Length == 3 && s[0] == 'C')// C1f
-                return s[1] == '1' && s[2] == 'f';
-            else if (s.Length == 3)// A1f B1f
-                return s[2] == 'f' && int.TryParse(s[1..2], out int i) && PointCheck(i);
-            else//A1 B1
-                return int.TryParse(s[1..2], out int i) && PointCheck(i);
+
+            var flagsStart = 1;
+            if (sensor != 'C')
+            {
+                if (s.Length < 2 || !int.TryParse(s[1..2], out var position) || !PointCheck(position))
+                    return false;
+                flagsStart = 2;
+            }
+            else if (s[1] == '1')
+            {
+                flagsStart = 2;
+            }
+
+            foreach (var flag in s[flagsStart..])
+            {
+                if (flag is not ('b' or 'x' or 'f'))
+                    return false;
+            }
+
+            return true;
         }
         /// <summary>
         /// 判断string是否为数字
