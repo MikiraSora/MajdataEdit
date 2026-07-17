@@ -147,4 +147,7 @@
   <data name="EditorContextMenuJumpToCursor" xml:space="preserve">
     <value>Jump to cursor position</value>
   </data>
+  <data name="PlayMineSoundEffects" xml:space="preserve">
+    <value>Play Mine object sound effects</value>
+  </data>
 </root>

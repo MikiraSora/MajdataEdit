@@ -458,6 +458,9 @@
   <data name="DrawHSpeedChanges" xml:space="preserve">
     <value>绘制变速标记</value>
   </data>
+  <data name="PlayMineSoundEffects" xml:space="preserve">
+    <value>播放 Mine 物件音效</value>
+  </data>
   <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
     <value>绘制空内容变速标记</value>
   </data>

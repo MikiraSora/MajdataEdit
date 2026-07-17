@@ -214,6 +214,10 @@ public partial class MainWindow
 
             var notes = noteGroup.Notes;
             foreach (var note in notes)
+            {
+                if (editorSetting?.PlayMineSoundEffects != true && IsMineNote(note))
+                    continue;
+
                 switch (note.Type)
                 {
                     case SimaiNoteType.Tap:
@@ -357,6 +361,7 @@ public partial class MainWindow
                         break;
                     }
                 }
+            }
 
             if (combIndex != -1)
                 waitToBePlayed[combIndex] = stobj;

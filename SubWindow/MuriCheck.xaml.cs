@@ -133,6 +133,11 @@ public partial class MuriCheck : Window
         }
     }
 
+    private static bool IsMineNote(SimaiNote note)
+    {
+        return note.IsMine || note.IsMineSlide;
+    }
+
     private int multNoteDetect()
     {
         var TIME_EPS = 5;
@@ -151,6 +156,10 @@ public partial class MuriCheck : Window
             var positionY = noteGroup.RawTextPositionY;
 
             foreach (var note in noteGroup.Notes)
+            {
+                if (IsMineNote(note))
+                    continue;
+
                 if (note.Type == SimaiNoteType.Tap)
                 {
                     opSequence.Add(new MaimaiOperationMultNote(
@@ -225,6 +234,7 @@ public partial class MuriCheck : Window
                     MessageBox.Show("无理检测暂时不支持dx谱面！ / dx map not support now", "警告");
                     return -1;
                 }
+            }
         }
 
         opSequence.Sort(delegate(MaimaiOperationMultNote x, MaimaiOperationMultNote y)
@@ -301,6 +311,10 @@ public partial class MuriCheck : Window
             var positionY = noteGroup.RawTextPositionY;
 
             foreach (var note in noteGroup.Notes)
+            {
+                if (IsMineNote(note))
+                    continue;
+
                 if (note.Type == SimaiNoteType.Tap ||
                     note.Type == SimaiNoteType.Hold)
                 {
@@ -419,6 +433,7 @@ public partial class MuriCheck : Window
                     MessageBox.Show("无理检测暂时不支持dx谱面！ / dx map not support now", "警告");
                     return -1;
                 }
+            }
         }
 
         opSequence.Sort(delegate(MaimaiOperationSlide x, MaimaiOperationSlide y)

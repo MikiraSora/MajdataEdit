@@ -466,6 +466,9 @@ Click OK to start render.</value>
   <data name="DrawHSpeedChanges" xml:space="preserve">
     <value>Draw HSpeed markers</value>
   </data>
+  <data name="PlayMineSoundEffects" xml:space="preserve">
+    <value>Play Mine object sound effects</value>
+  </data>
   <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
     <value>Draw empty-content HSpeed markers</value>
   </data>

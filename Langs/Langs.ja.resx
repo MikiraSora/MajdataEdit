@@ -497,6 +497,9 @@ Open Browser to download latest update of Majdata?</value>
     <value>HSpeed markers を表示</value>
     <comment>Translation required</comment>
   </data>
+  <data name="PlayMineSoundEffects" xml:space="preserve">
+    <value>Mineオブジェクトの効果音を再生</value>
+  </data>
   <data name="DrawEmptyHSpeedChanges" xml:space="preserve">
     <value>空 content の HSpeed markers を表示</value>
     <comment>Translation required</comment>

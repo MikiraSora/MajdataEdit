@@ -115,6 +115,7 @@ public class EditorSetting
     public bool ColorObjectsByHSpeedGroup = false;
     public bool DrawHSpeedChanges = true;
     public bool DrawEmptyHSpeedChanges = true;
+    public bool PlayMineSoundEffects = false;
     public int HSpeedDisplayGroupDistancePx = 18;
     public int HSpeedDisplayLineWidthPx = 2;
     public int HSpeedDisplayLabelFontSize = 9;

@@ -16,9 +16,9 @@
 > MajdataEdit 与当前打包的 MajdataView 尚未完整消费这些标志，因此不能视为端到端支持。**
 
 当前可以读取 Mine 语法、在 `SimaiNote` 中保存标志，并将标志写入发送给 MajdataView
-的 JSON。原始 maidata 文本保存路径也会保留 `m`。编辑器语法检查现已接受 Mine 修饰，
-但编辑器时间轴、音效、谱面不可理检查、MA2 导出和当前 MajdataView 预览仍缺少完整的
-Mine 专用行为。
+的 JSON。原始 maidata 文本保存路径也会保留 `m`。编辑器语法检查、时间轴和音效开关
+现已接入 Mine，不可理检查也会忽略 Mine 物件；MA2 导出和当前 MajdataView 预览仍缺少
+完整的 Mine 专用行为。
 
 ## 支持矩阵
 
@@ -31,8 +31,8 @@ Mine 专用行为。
 | Each 分析 | ⚠️ | 已排除 Mine、Mine Slide 和无头 Slide，不参与 Each 分组 |
 | 编辑器语法检查 | ✅ | 在 FixedSoflan 校验后规范化 `m`，支持各音符类型的 Mine 修饰 |
 | 编辑器时间轴 | ✅ | Mine 和 Mine Slide 统一使用灰色，并优先于 HSpeed 分组配色 |
-| 编辑器音效 | ❌ | 没有 Mine 分支，按普通 Tap/Hold/Touch/Slide 生成音效 |
-| 谱面不可理检查 | ❌ | 没有 Mine 分支，按普通音符类型参与检查 |
+| 编辑器音效 | ✅ | 设置页可控制是否生成 Mine 物件音效，默认关闭 |
+| 谱面不可理检查 | ✅ | 多押与 Slide 检查均忽略 Mine 和 Mine Slide |
 | MA2 导出 | ❌ | 没有 Mine 映射或警告，会降级为普通 MA2 音符并丢失语义 |
 | 当前打包的 MajdataView | ❌ | 数据类有 Mine 字段，但运行时加载和实例化代码未消费字段 |
 | Mine 自动化测试 | ❌ | 当前仓库未找到针对 Mine 解析或编辑器行为的测试 |
@@ -128,19 +128,22 @@ if (note.IsMine || note.IsMineSlide || note.IsSlideNoHead)
 Mine 灰色优先于 Break、Each 和 HSpeed group 颜色；即使启用按 HSpeed group 着色，
 Mine 仍保持灰色。Mine TouchHold 还会强制绘制灰色头部，以便在时间轴上明确辨认。
 
-### ❌ 音效和完成时间
+### ✅ 音效开关
 
-[`SoundEffect.cs`](../SoundEffect.cs) 按 `SimaiNoteType` 生成 Answer、Judge、Hold 尾音和
-Slide 音效，只读取 Break、EX、SlideBreak 和 Hanabi 等标志，没有 Mine 判断。
+[`EditorSetting`](../Majson.cs) 定义了默认值为 `false` 的 `PlayMineSoundEffects`，并在
+编辑器设置页提供对应复选框。设置会随其他全局编辑器设置一起保存和恢复。
 
-Mine 当前会沿普通音符分支生成音效，也会按普通音符参与 All Perfect 完成时间计算。
-这只是类型降级行为，不是 Mine 专用音效或判定实现。
+[`SoundEffect.generateSoundEffectList`](../SoundEffect.cs) 在进入音符类型分支前同时检查
+`IsMine` 和 `IsMineSlide`。关闭时跳过整个 Mine 物件，因此不会遗留 Tap/Touch 头音、
+Hold 尾音、TouchHold 结束音或 Slide 启动/尾音；开启后按该物件的基础音符类型生成原有
+音效。该开关只控制物件音效，不改变 All Perfect 完成时间计算。
 
-### ❌ 谱面不可理检查
+### ✅ 谱面不可理检查
 
-[`SubWindow/MuriCheck.xaml.cs`](../SubWindow/MuriCheck.xaml.cs) 没有读取 `IsMine` 或
-`IsMineSlide`。Mine 会按其基础 `SimaiNoteType` 参与 Tap、Hold 或 Slide 检查，可能产生
-不符合 Mine 语义的检查结果。
+[`SubWindow/MuriCheck.xaml.cs`](../SubWindow/MuriCheck.xaml.cs) 在 `multNoteDetect` 和
+`slideDetect` 的音符入口同时检查 `IsMine` 与 `IsMineSlide`。Mine 物件不会进入操作序列，
+因此不参与多押、Hold 占用、Slide 路径或撞尾检查；Mine Touch/TouchHold 也不会误触发
+“不支持 DX 谱面”的中止分支。
 
 ### ❌ MA2 导出
 
@@ -170,7 +173,9 @@ Hanabi、SlideBreak、FixedSoflan 等已支持标志。
 - ⚠️ **只能称为数据层和局部编辑器适配，不能称为完整 Mine 支持。**
 - ✅ **编辑器语法检查已完成 Mine 修饰接入，不再误报典型 Mine 语法。**
 - ✅ **编辑器时间轴已使用灰色区分 Mine 和 Mine Slide。**
-- ❌ **当前预览、音效、不可理检查和 MA2 导出仍未完成 Mine 接入。**
+- ✅ **编辑器设置页可以控制 Mine 物件音效，且默认不播放。**
+- ✅ **谱面不可理检查会完全忽略 Mine 和 Mine Slide。**
+- ❌ **当前预览和 MA2 导出仍未完成 Mine 接入。**
 
 要达到端到端支持，仍需定义 Mine 的预览语义，在 MajdataView 中消费两个 Mine 标志，
-并明确音效、计数、不可理检查与 MA2 导出的降级或拒绝策略。
+并明确计数与 MA2 导出的降级或拒绝策略。
