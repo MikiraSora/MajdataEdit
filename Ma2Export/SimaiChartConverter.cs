@@ -186,7 +186,13 @@ public sealed class SimaiChartConverter
                             break;
                     }
 
-                    AppendSoflanMarker(notesOutput, note, MapSoflanGroup);
+                    AppendNoteTail(
+                        notesOutput,
+                        note.IsMine,
+                        MapSoflanGroup(note.SoflanGroup),
+                        note.IsFixedSoflan,
+                        note.HasFixedSoflanSpeed,
+                        note.FixedSoflanSpeed);
 
                     notesOutput.AppendLine();
                     AddStat(id);
@@ -269,7 +275,9 @@ public sealed class SimaiChartConverter
                 foreach (var (slideId, grid, startPos, waitGrid, durationGrid, endPos) in tmpFixedSubListOutput)
                 {
                     FormatGrid(grid, out var slideUnit, out var slideGrid);
-                    notesOutput.AppendLine($"{slideId}\t{slideUnit}\t{slideGrid}\t{startPos}\t{waitGrid}\t{durationGrid}\t{endPos}");
+                    notesOutput.Append($"{slideId}\t{slideUnit}\t{slideGrid}\t{startPos}\t{waitGrid}\t{durationGrid}\t{endPos}");
+                    AppendNoteTail(notesOutput, note.IsMineSlide);
+                    notesOutput.AppendLine();
                 }
             }
         }
@@ -511,23 +519,39 @@ public sealed class SimaiChartConverter
         return note.IsEx ? "EX" + suffix : "NM" + suffix;
     }
 
-    private static void AppendSoflanMarker(StringBuilder output, SimaiNote note, Func<int, int> mapSoflanGroup)
+    private static void AppendNoteTail(
+        StringBuilder output,
+        bool isMine,
+        int soflanGroup = 0,
+        bool isFixedSoflan = false,
+        bool hasFixedSoflanSpeed = false,
+        float fixedSoflanSpeed = 0)
     {
-        var soflanGroup = mapSoflanGroup(note.SoflanGroup);
-
-        if (!note.IsFixedSoflan)
+        if (!isMine && soflanGroup == 0 && !isFixedSoflan)
         {
-            if (soflanGroup != 0)
-                output.Append($"\t#{soflanGroup}");
             return;
         }
 
-        output.Append("\t#");
+        output.Append('\t');
+        if (isMine)
+        {
+            output.Append("!m");
+        }
+
+        if (soflanGroup == 0 && !isFixedSoflan)
+        {
+            return;
+        }
+
+        output.Append('#');
         if (soflanGroup != 0)
             output.Append(soflanGroup.ToString(CultureInfo.InvariantCulture));
-        output.Append('F');
-        if (note.HasFixedSoflanSpeed)
-            output.Append(note.FixedSoflanSpeed.ToString("G9", CultureInfo.InvariantCulture));
+        if (isFixedSoflan)
+        {
+            output.Append('F');
+            if (hasFixedSoflanSpeed)
+                output.Append(fixedSoflanSpeed.ToString("G9", CultureInfo.InvariantCulture));
+        }
     }
 
     private static List<SlidePart> InstantiateStarGroup(SimaiTimingPoint timing, SimaiNote note)

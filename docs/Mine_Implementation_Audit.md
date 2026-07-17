@@ -17,8 +17,8 @@
 
 当前可以读取 Mine 语法、在 `SimaiNote` 中保存标志，并将标志写入发送给 MajdataView
 的 JSON。原始 maidata 文本保存路径也会保留 `m`。编辑器语法检查、时间轴和音效开关
-现已接入 Mine，不可理检查也会忽略 Mine 物件；MA2 导出和当前 MajdataView 预览仍缺少
-完整的 Mine 专用行为。
+现已接入 Mine，不可理检查也会忽略 Mine 物件；MA2 导出会通过 Majdata 私有 `!m` 尾块
+保留 Mine 语义，但当前 MajdataView 预览仍缺少完整的 Mine 专用行为。
 
 ## 支持矩阵
 
@@ -33,7 +33,7 @@
 | 编辑器时间轴 | ✅ | Mine 和 Mine Slide 统一使用灰色，并优先于 HSpeed 分组配色 |
 | 编辑器音效 | ✅ | 设置页可控制是否生成 Mine 物件音效，默认关闭 |
 | 谱面不可理检查 | ✅ | 多押与 Slide 检查均忽略 Mine 和 Mine Slide |
-| MA2 导出 | ❌ | 没有 Mine 映射或警告，会降级为普通 MA2 音符并丢失语义 |
+| MA2 导出 | ⚠️ | 通过顺序无关的私有 `!m` 尾块保留 Mine 标志，标准 MA2 读取器可能忽略该扩展 |
 | 当前打包的 MajdataView | ❌ | 数据类有 Mine 字段，但运行时加载和实例化代码未消费字段 |
 | Mine 自动化测试 | ❌ | 当前仓库未找到针对 Mine 解析或编辑器行为的测试 |
 
@@ -145,14 +145,21 @@ Hold 尾音、TouchHold 结束音或 Slide 启动/尾音；开启后按该物件
 因此不参与多押、Hold 占用、Slide 路径或撞尾检查；Mine Touch/TouchHold 也不会误触发
 “不支持 DX 谱面”的中止分支。
 
-### ❌ MA2 导出
+### ⚠️ MA2 导出
 
-[`Ma2Export/SimaiChartConverter.cs`](../Ma2Export/SimaiChartConverter.cs) 的音符 ID 映射
-只根据 `SimaiNoteType`、Break、EX 和 ForceStar 生成 `TAP`、`HLD`、`STR`、`TTP` 等
-MA2 记录，没有读取 Mine 标志。
+[`Ma2Export/SimaiChartConverter.cs`](../Ma2Export/SimaiChartConverter.cs) 保持原有基础音符
+ID，并在对应 MA2 记录的最后一个字段中使用 Majdata 私有 `!m` 修饰符保存 Mine 标志。
+Tap、Hold、Touch、TouchHold 和 Slide 星头读取 `IsMine`；Slide 轨迹读取
+`IsMineSlide`，两者不会互相传播。无头 Slide 只会生成轨迹标记；连接 Slide 沿用当前
+`SimaiNote` 粒度，其拆出的轨迹行共享 `IsMineSlide`。
 
-导出器目前也不会因 Mine 给出错误或降级警告，所以 Mine 会静默变成普通 MA2 音符，
-`IsMine`/`IsMineSlide` 语义在导出结果中丢失。
+`!m` 与 Soflan/FixedSoflan 修饰符的相对顺序不构成语义。导出器规范输出为 Mine 在前，
+例如 `!m#12`、`!m#F600`、`!m#12F600`；读取方也应把 `#12!m` 和
+`#12F600!m` 识别为等价形式。所有修饰符位于同一个制表符分隔的尾字段中。
+
+该扩展不会创建新的 MA2 音符 ID，也不会改变 `T_REC_*`、`T_NUM_*`、`T_JUDGE_*` 或
+`TTM_SCR_*` 汇总。不了解 `!m` 的标准 MA2 读取器仍可能把这些记录当作普通基础物件，
+因此此项属于 Majdata 工具链内的扩展兼容，而不是标准 MA2 Mine 类型。
 
 ### ❌ 当前打包的 MajdataView
 
@@ -175,7 +182,8 @@ Hanabi、SlideBreak、FixedSoflan 等已支持标志。
 - ✅ **编辑器时间轴已使用灰色区分 Mine 和 Mine Slide。**
 - ✅ **编辑器设置页可以控制 Mine 物件音效，且默认不播放。**
 - ✅ **谱面不可理检查会完全忽略 Mine 和 Mine Slide。**
-- ❌ **当前预览和 MA2 导出仍未完成 Mine 接入。**
+- ⚠️ **MA2 导出已通过私有 `!m` 尾块保留 Mine 标志，但不属于标准 MA2 扩展。**
+- ❌ **当前预览仍未完成 Mine 接入。**
 
 要达到端到端支持，仍需定义 Mine 的预览语义，在 MajdataView 中消费两个 Mine 标志，
-并明确计数与 MA2 导出的降级或拒绝策略。
+并让所有需要读取扩展 MA2 的组件按顺序无关规则识别 `!m`。
