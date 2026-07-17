@@ -157,6 +157,26 @@ Tap、Hold、Touch、TouchHold 和 Slide 星头读取 `IsMine`；Slide 轨迹读
 例如 `!m#12`、`!m#F600`、`!m#12F600`；读取方也应把 `#12!m` 和
 `#12F600!m` 识别为等价形式。所有修饰符位于同一个制表符分隔的尾字段中。
 
+尾字段协议如下：
+
+| 语义 | MajdataEdit 规范输出 | 等价输入 |
+| --- | --- | --- |
+| 仅 Mine | `!m` | `!m` |
+| Mine + group 12 | `!m#12` | `#12!m` |
+| Mine + FixedSoflan 600 | `!m#F600` | `#F600!m` |
+| Mine + group 12 + FixedSoflan 600 | `!m#12F600` | `#12F600!m` |
+
+读取方应先在尾字段中识别并移除一次精确的小写 `!m`，再按原有规则解析剩余的
+`#groupFspeed`。不得通过 `!m` 位于 `#` 前或后来判断 Mine；重复 `!m` 或重复 `#`
+应视为无效扩展字段。
+
+| MA2 记录 | Mine 来源 |
+| --- | --- |
+| Tap、Hold、Touch、TouchHold | `IsMine` |
+| Slide 的 `STR` 星头记录 | `IsMine` |
+| Slide/Wifi 轨迹记录 | `IsMineSlide` |
+| 无头 Slide | 不生成星头，仅轨迹按 `IsMineSlide` 标记 |
+
 该扩展不会创建新的 MA2 音符 ID，也不会改变 `T_REC_*`、`T_NUM_*`、`T_JUDGE_*` 或
 `TTM_SCR_*` 汇总。不了解 `!m` 的标准 MA2 读取器仍可能把这些记录当作普通基础物件，
 因此此项属于 Majdata 工具链内的扩展兼容，而不是标准 MA2 Mine 类型。
