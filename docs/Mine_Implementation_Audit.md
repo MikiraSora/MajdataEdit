@@ -30,7 +30,7 @@ Mine 专用行为。
 | JSON 数据传递 | ✅ | `SimaiNote` 公共属性会随 `timingList` 序列化 |
 | Each 分析 | ⚠️ | 已排除 Mine、Mine Slide 和无头 Slide，不参与 Each 分组 |
 | 编辑器语法检查 | ✅ | 在 FixedSoflan 校验后规范化 `m`，支持各音符类型的 Mine 修饰 |
-| 编辑器时间轴 | ❌ | 没有 Mine 专用图形或颜色，按普通音符绘制 |
+| 编辑器时间轴 | ✅ | Mine 和 Mine Slide 统一使用灰色，并优先于 HSpeed 分组配色 |
 | 编辑器音效 | ❌ | 没有 Mine 分支，按普通 Tap/Hold/Touch/Slide 生成音效 |
 | 谱面不可理检查 | ❌ | 没有 Mine 分支，按普通音符类型参与检查 |
 | MA2 导出 | ❌ | 没有 Mine 映射或警告，会降级为普通 MA2 音符并丢失语义 |
@@ -119,14 +119,14 @@ if (note.IsMine || note.IsMineSlide || note.IsSlideNoHead)
 已通过反射测试覆盖 Mine Tap、Hold、Touch、TouchHold、Slide、FixedSoflan 组合，
 以及空 Mine、非法 FixedSoflan、非法键位、缺少 Slide 时长和非法 Hold 时长等拒绝场景。
 
-### ❌ 编辑器时间轴
+### ✅ 编辑器时间轴
 
-[`MainWindowCore.DrawWave`](../MainWindowCore.cs) 仅根据 `SimaiNoteType` 绘制 Tap、Hold、
-Touch、TouchHold 和 Slide。颜色函数只区分 Break、Each 和 HSpeed group，没有读取
-`IsMine` 或 `IsMineSlide`。
+[`MainWindowCore.DrawWave`](../MainWindowCore.cs) 会同时检查 `IsMine` 和 `IsMineSlide`，
+并把 Mine Tap、Force Star、Hold、Touch、TouchHold、Slide 星头及 Slide 轨迹统一绘制
+为灰色。
 
-结果是 Mine Tap、Mine Hold 和 Mine Touch 看起来与对应的普通音符相同，Mine Slide
-也使用普通 Slide 颜色，用户无法从编辑器时间轴辨认 Mine。
+Mine 灰色优先于 Break、Each 和 HSpeed group 颜色；即使启用按 HSpeed group 着色，
+Mine 仍保持灰色。Mine TouchHold 还会强制绘制灰色头部，以便在时间轴上明确辨认。
 
 ### ❌ 音效和完成时间
 
@@ -169,7 +169,8 @@ Hanabi、SlideBreak、FixedSoflan 等已支持标志。
 - ✅ **可以确认 Mine 标志能够进入编辑器模型和 JSON。**
 - ⚠️ **只能称为数据层和局部编辑器适配，不能称为完整 Mine 支持。**
 - ✅ **编辑器语法检查已完成 Mine 修饰接入，不再误报典型 Mine 语法。**
-- ❌ **当前预览、时间轴、音效、不可理检查和 MA2 导出仍未完成 Mine 接入。**
+- ✅ **编辑器时间轴已使用灰色区分 Mine 和 Mine Slide。**
+- ❌ **当前预览、音效、不可理检查和 MA2 导出仍未完成 Mine 接入。**
 
 要达到端到端支持，仍需定义 Mine 的预览语义，在 MajdataView 中消费两个 Mine 标志，
 并明确音效、计数、不可理检查与 MA2 导出的降级或拒绝策略。

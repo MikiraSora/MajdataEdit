@@ -870,8 +870,9 @@ public partial class MainWindow : Window
                 foreach (var noteD in notes)
                 {
                     var isEach = SimaiProcess.EachAnalysis.Contains(noteD);
-                    var shouldColorByHSpeedGroup = editorSetting?.ColorObjectsByHSpeedGroup == true;
-                    var hSpeedGroupColor = shouldColorByHSpeedGroup
+                    var isMine = IsMineNote(noteD);
+                    var useHSpeedGroupColor = editorSetting?.ColorObjectsByHSpeedGroup == true && !isMine;
+                    var hSpeedGroupColor = useHSpeedGroupColor
                         ? GetObjectHSpeedGroupColor(noteD.SoflanGroup)
                         : Color.Empty;
                     var y = noteD.StartPosition * 6.875f + 8f; //与键位有关
@@ -896,7 +897,7 @@ public partial class MainWindow : Window
                         if (noteD.IsForceStar)
                         {
                             pen.Width = 3;
-                            pen.Color = shouldColorByHSpeedGroup
+                            pen.Color = useHSpeedGroupColor
                                 ? hSpeedGroupColor
                                 : GetTapStarColor(noteD, isEach);
                             Brush brush = new SolidBrush(pen.Color);
@@ -906,7 +907,7 @@ public partial class MainWindow : Window
                         else
                         {
                             pen.Width = 2;
-                            pen.Color = shouldColorByHSpeedGroup
+                            pen.Color = useHSpeedGroupColor
                                 ? hSpeedGroupColor
                                 : GetTapColor(noteD, isEach);
                             graphics.DrawEllipse(pen, x - 2.5f, y - 2.5f, 5, 5);
@@ -916,7 +917,7 @@ public partial class MainWindow : Window
                     if (noteD.Type == SimaiNoteType.Touch)
                     {
                         pen.Width = 2;
-                        pen.Color = shouldColorByHSpeedGroup
+                        pen.Color = useHSpeedGroupColor
                             ? hSpeedGroupColor
                             : GetTouchHeadColor(noteD, isEach);
                         graphics.DrawRectangle(pen, x - 2.5f, y - 2.5f, 5, 5);
@@ -925,7 +926,7 @@ public partial class MainWindow : Window
                     if (noteD.Type == SimaiNoteType.Hold)
                     {
                         pen.Width = 3;
-                        pen.Color = shouldColorByHSpeedGroup
+                        pen.Color = useHSpeedGroupColor
                             ? hSpeedGroupColor
                             : GetTapColor(noteD, isEach);
 
@@ -946,27 +947,35 @@ public partial class MainWindow : Window
                         if (!float.IsNormal(xDelta)) xDelta = ushort.MaxValue;
                         if (xDelta < 1f) xDelta = 1;
 
-                        pen.Color = shouldColorByHSpeedGroup
+                        pen.Color = isMine
+                            ? Color.FromArgb(200, Color.Gray)
+                            : useHSpeedGroupColor
                             ? Color.FromArgb(200, hSpeedGroupColor)
                             : Color.FromArgb(200, 255, 75, 0);
                         graphics.DrawLine(pen, x, y, x + xDelta * 4f, y);
-                        pen.Color = shouldColorByHSpeedGroup
+                        pen.Color = isMine
+                            ? Color.FromArgb(200, Color.Gray)
+                            : useHSpeedGroupColor
                             ? Color.FromArgb(200, hSpeedGroupColor)
                             : Color.FromArgb(200, 255, 241, 0);
                         graphics.DrawLine(pen, x, y, x + xDelta * 3f, y);
-                        pen.Color = shouldColorByHSpeedGroup
+                        pen.Color = isMine
+                            ? Color.FromArgb(200, Color.Gray)
+                            : useHSpeedGroupColor
                             ? Color.FromArgb(200, hSpeedGroupColor)
                             : Color.FromArgb(200, 2, 165, 89);
                         graphics.DrawLine(pen, x, y, x + xDelta * 2f, y);
-                        pen.Color = shouldColorByHSpeedGroup
+                        pen.Color = isMine
+                            ? Color.FromArgb(200, Color.Gray)
+                            : useHSpeedGroupColor
                             ? Color.FromArgb(200, hSpeedGroupColor)
                             : Color.FromArgb(200, 0, 140, 254);
                         graphics.DrawLine(pen, x, y, x + xDelta, y);
 
-                        if (isEach || noteD.IsBreak)
+                        if (isMine || isEach || noteD.IsBreak)
                         {
                             pen.Width = 2;
-                            pen.Color = shouldColorByHSpeedGroup
+                            pen.Color = useHSpeedGroupColor
                                 ? hSpeedGroupColor
                                 : GetTouchHeadColor(noteD, isEach);
                             graphics.DrawRectangle(pen, x - 2.5f, y - 2.5f, 5, 5);
@@ -978,7 +987,7 @@ public partial class MainWindow : Window
                         pen.Width = 3;
                         if (!noteD.IsSlideNoHead)
                         {
-                            pen.Color = shouldColorByHSpeedGroup
+                            pen.Color = useHSpeedGroupColor
                                 ? hSpeedGroupColor
                                 : GetTapStarColor(noteD, isEach);
                             Brush brush = new SolidBrush(pen.Color);
@@ -986,7 +995,7 @@ public partial class MainWindow : Window
                                 new PointF(x - 7f, y - 7f));
                         }
 
-                        pen.Color = shouldColorByHSpeedGroup
+                        pen.Color = useHSpeedGroupColor
                             ? hSpeedGroupColor
                             : GetSlideColor(noteD);
                         pen.DashStyle = DashStyle.Dot;
@@ -1637,26 +1646,35 @@ public partial class MainWindow : Window
 
     private static Color GetTapStarColor(SimaiNote note, bool isEach)
     {
+        if (IsMineNote(note)) return Color.Gray;
         if (note.IsBreak || note.IsSlideBreak) return Color.OrangeRed;
         return isEach ? Color.Gold : Color.DeepSkyBlue;
     }
 
     private static Color GetTapColor(SimaiNote note, bool isEach)
     {
+        if (IsMineNote(note)) return Color.Gray;
         if (note.IsBreak) return Color.OrangeRed;
         return isEach ? Color.Gold : Color.LightPink;
     }
 
     private static Color GetTouchHeadColor(SimaiNote note, bool isEach)
     {
+        if (IsMineNote(note)) return Color.Gray;
         if (note.IsBreak) return Color.OrangeRed;
         return isEach ? Color.Gold : Color.DeepSkyBlue;
     }
 
     private static Color GetSlideColor(SimaiNote note)
     {
+        if (IsMineNote(note)) return Color.Gray;
         if (note.IsSlideBreak) return Color.OrangeRed;
         return Color.SkyBlue;
+    }
+
+    private static bool IsMineNote(SimaiNote note)
+    {
+        return note.IsMine || note.IsMineSlide;
     }
 
     private readonly record struct HSpeedDisplayEvent(double Time, int SoflanGroup, float HSpeed, float X, float Y);
