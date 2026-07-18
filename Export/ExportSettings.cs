@@ -41,6 +41,12 @@ internal sealed class MusicXmlExportSettings
 
     public string Comment { get; set; } = string.Empty;
 
+    public bool GenerateCoverVideo { get; set; }
+
+    public bool GenerateAcbAwb { get; set; }
+
+    public bool GenerateJacketAb { get; set; }
+
     public List<MusicXmlDifficultySettings> Difficulties { get; set; } = new();
 }
 

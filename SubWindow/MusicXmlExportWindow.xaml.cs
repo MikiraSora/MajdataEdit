@@ -205,6 +205,12 @@ public partial class MusicXmlExportWindow : Window
             .Select(difficulty => Path.Combine(
                 targetDirectory,
                 $"{request.FinalMusicId}_{difficulty.SlotIndex:00}.ma2")));
+        targetPaths.AddRange(MusicXmlResourceExporter.GetOutputPaths(
+            request.OutputDirectory,
+            baseMusicId,
+            musicXmlSettings.GenerateCoverVideo,
+            musicXmlSettings.GenerateAcbAwb,
+            musicXmlSettings.GenerateJacketAb));
         var existingPaths = targetPaths.Where(File.Exists).ToArray();
         if (existingPaths.Length > 0)
         {
@@ -224,8 +230,21 @@ public partial class MusicXmlExportWindow : Window
         {
             var progress = new Progress<string>(message => StatusTextBlock.Text = message);
             var result = await MusicXmlExporter.ExportAsync(request, progress);
+            var resourcePaths = await MusicXmlResourceExporter.ExportAsync(
+                _chartDirectory,
+                request.OutputDirectory,
+                baseMusicId,
+                _settings.AudioPreviewStartMilliseconds,
+                _settings.AudioPreviewEndMilliseconds,
+                musicXmlSettings.GenerateCoverVideo,
+                musicXmlSettings.GenerateAcbAwb,
+                musicXmlSettings.GenerateJacketAb,
+                progress);
+            var resourceSummary = resourcePaths.Count == 0
+                ? string.Empty
+                : $"\n附加资源：{resourcePaths.Count} 个";
             MessageBox.Show(
-                $"Music.xml 生成完成，共生成 {result.Ma2Paths.Count} 个 MA2：\n{result.TargetDirectory}",
+                $"Music.xml 生成完成，共生成 {result.Ma2Paths.Count} 个 MA2：\n{result.TargetDirectory}{resourceSummary}",
                 Title,
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -234,7 +253,7 @@ public partial class MusicXmlExportWindow : Window
         }
         catch (Exception exception)
         {
-            MessageBox.Show("Music.xml 生成失败：\n" + exception.Message, Title,
+            MessageBox.Show("Music.xml 或附加资源生成失败：\n" + exception.Message, Title,
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -300,6 +319,22 @@ public partial class MusicXmlExportWindow : Window
             return false;
         }
 
+        var generateCoverVideo = GenerateCoverVideoCheckBox.IsChecked == true;
+        var generateAcbAwb = GenerateAcbAwbCheckBox.IsChecked == true;
+        var generateJacketAb = GenerateJacketAbCheckBox.IsChecked == true;
+        if ((generateCoverVideo || generateJacketAb) &&
+            !File.Exists(Path.Combine(_chartDirectory, "bg.jpg")))
+        {
+            ShowInputWarning("已勾选封面或视频生成，但当前谱面目录中没有 bg.jpg。", OutputDirectoryTextBox);
+            return false;
+        }
+
+        if (generateAcbAwb && !File.Exists(Path.Combine(_chartDirectory, "track.mp3")))
+        {
+            ShowInputWarning("已勾选音频生成，但当前谱面目录中没有 track.mp3。", OutputDirectoryTextBox);
+            return false;
+        }
+
         foreach (var row in GetActiveDifficultyRows().Where(row => row.IsExportEnabled))
         {
             var inote = _inoteOptions.First(option => option.Index == row.InoteIndex);
@@ -342,6 +377,9 @@ public partial class MusicXmlExportWindow : Window
             LongMusic = LongMusicCheckBox.IsChecked == true,
             UtageKanjiName = UtageKanjiNameTextBox.Text,
             Comment = CommentTextBox.Text,
+            GenerateCoverVideo = generateCoverVideo,
+            GenerateAcbAwb = generateAcbAwb,
+            GenerateJacketAb = generateJacketAb,
             Difficulties = DifficultyRows.Select(row => new MusicXmlDifficultySettings
             {
                 SlotIndex = row.SlotIndex,
@@ -379,6 +417,9 @@ public partial class MusicXmlExportWindow : Window
         LongMusicCheckBox.IsChecked = musicXml?.LongMusic ?? false;
         UtageKanjiNameTextBox.Text = musicXml?.UtageKanjiName ?? string.Empty;
         CommentTextBox.Text = musicXml?.Comment ?? string.Empty;
+        GenerateCoverVideoCheckBox.IsChecked = musicXml?.GenerateCoverVideo ?? false;
+        GenerateAcbAwbCheckBox.IsChecked = musicXml?.GenerateAcbAwb ?? false;
+        GenerateJacketAbCheckBox.IsChecked = musicXml?.GenerateJacketAb ?? false;
 
         var genreId = musicXml?.GenreId ?? 105;
         var genreName = musicXml?.GenreName ?? "maimai";
@@ -545,6 +586,7 @@ public partial class MusicXmlExportWindow : Window
     {
         _isExporting = exporting;
         InputPanel.IsEnabled = !exporting;
+        ResourceOptionsPanel.IsEnabled = !exporting;
         ConfirmButton.IsEnabled = !exporting;
         CancelButton.IsEnabled = !exporting;
         Cursor = exporting ? Cursors.Wait : null;

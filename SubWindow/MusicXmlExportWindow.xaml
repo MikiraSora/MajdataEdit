@@ -17,6 +17,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto"
@@ -333,16 +334,33 @@
                         </ItemsControl>
                     </StackPanel>
                 </GroupBox>
-
-                <TextBlock Margin="0,10,0,0"
-                           Text="{lex:Loc MusicXmlOutputHint}"
-                           TextWrapping="Wrap"
-                           Opacity="0.8"
-                           Foreground="{DynamicResource ButtonForeground}" />
             </StackPanel>
         </ScrollViewer>
 
-        <Grid Grid.Row="1" Margin="0,16,8,0">
+        <StackPanel x:Name="ResourceOptionsPanel"
+                    Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,14,8,0">
+            <CheckBox x:Name="GenerateCoverVideoCheckBox"
+                      Content="{lex:Loc MusicXmlGenerateCoverVideo}"
+                      Margin="0,0,20,0"
+                      Background="{DynamicResource ButtonsBackground}"
+                      Foreground="{DynamicResource ButtonForeground}"
+                      Template="{DynamicResource DarkCheck}" />
+            <CheckBox x:Name="GenerateAcbAwbCheckBox"
+                      Content="{lex:Loc MusicXmlGenerateAcbAwb}"
+                      Margin="0,0,20,0"
+                      Background="{DynamicResource ButtonsBackground}"
+                      Foreground="{DynamicResource ButtonForeground}"
+                      Template="{DynamicResource DarkCheck}" />
+            <CheckBox x:Name="GenerateJacketAbCheckBox"
+                      Content="{lex:Loc MusicXmlGenerateJacketAb}"
+                      Background="{DynamicResource ButtonsBackground}"
+                      Foreground="{DynamicResource ButtonForeground}"
+                      Template="{DynamicResource DarkCheck}" />
+        </StackPanel>
+
+        <Grid Grid.Row="2" Margin="0,16,8,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />

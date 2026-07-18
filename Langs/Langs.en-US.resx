@@ -617,7 +617,7 @@ Click OK to start render.</value>
     <value>Generates normal and small Unity AssetBundle jackets in SDEZ mode.</value>
   </data>
   <data name="GenerateMusicXml" xml:space="preserve">
-    <value>Generate Music.xml</value>
+    <value>Export all as opt structure</value>
   </data>
   <data name="MusicXmlTemplate" xml:space="preserve">
     <value>Base Music.xml template</value>
@@ -669,5 +669,14 @@ Click OK to start render.</value>
   </data>
   <data name="MusicXmlOutputHint" xml:space="preserve">
     <value>Outputs Music.xml to outputDir/music/music{FinaleMusicId}/ and generates {FinaleMusicId}_{xx}.ma2 for every enabled difficulty.</value>
+  </data>
+  <data name="MusicXmlGenerateCoverVideo" xml:space="preserve">
+    <value>Also generate USM video</value>
+  </data>
+  <data name="MusicXmlGenerateAcbAwb" xml:space="preserve">
+    <value>Also generate ACB/AWB audio</value>
+  </data>
+  <data name="MusicXmlGenerateJacketAb" xml:space="preserve">
+    <value>Also generate jacket AB</value>
   </data>
 </root>

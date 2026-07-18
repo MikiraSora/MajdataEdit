@@ -627,7 +627,7 @@
     <value>以 SDEZ 模式生成大、小两种 Unity AssetBundle 封面。</value>
   </data>
   <data name="GenerateMusicXml" xml:space="preserve">
-    <value>Music.xml生成</value>
+    <value>全部导出成opt结构</value>
   </data>
   <data name="MusicXmlTemplate" xml:space="preserve">
     <value>基础 Music.xml 模板</value>
@@ -679,5 +679,14 @@
   </data>
   <data name="MusicXmlOutputHint" xml:space="preserve">
     <value>输出到 outputDir/music/music{FinaleMusicId}/Music.xml，并为所有启用难度生成 {FinaleMusicId}_{xx}.ma2。</value>
+  </data>
+  <data name="MusicXmlGenerateCoverVideo" xml:space="preserve">
+    <value>同时生成 USM 视频</value>
+  </data>
+  <data name="MusicXmlGenerateAcbAwb" xml:space="preserve">
+    <value>同时生成 ACB/AWB 音频</value>
+  </data>
+  <data name="MusicXmlGenerateJacketAb" xml:space="preserve">
+    <value>同时生成封面 AB</value>
   </data>
 </root>

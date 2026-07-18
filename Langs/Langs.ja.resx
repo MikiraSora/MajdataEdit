@@ -653,7 +653,7 @@ Open Browser to download latest update of Majdata?</value>
     <value>SDEZ モードで通常・小型のジャケット AssetBundle を生成します。</value>
   </data>
   <data name="GenerateMusicXml" xml:space="preserve">
-    <value>Music.xmlを生成</value>
+    <value>すべてをopt構成で出力</value>
   </data>
   <data name="MusicXmlTemplate" xml:space="preserve">
     <value>基本 Music.xml テンプレート</value>
@@ -705,5 +705,14 @@ Open Browser to download latest update of Majdata?</value>
   </data>
   <data name="MusicXmlOutputHint" xml:space="preserve">
     <value>outputDir/music/music{FinaleMusicId}/ に Music.xml を出力し、有効な難易度ごとに {FinaleMusicId}_{xx}.ma2 を生成します。</value>
+  </data>
+  <data name="MusicXmlGenerateCoverVideo" xml:space="preserve">
+    <value>USM動画も生成</value>
+  </data>
+  <data name="MusicXmlGenerateAcbAwb" xml:space="preserve">
+    <value>ACB/AWB音声も生成</value>
+  </data>
+  <data name="MusicXmlGenerateJacketAb" xml:space="preserve">
+    <value>ジャケットABも生成</value>
   </data>
 </root>

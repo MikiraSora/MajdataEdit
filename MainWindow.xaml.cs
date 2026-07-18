@@ -285,7 +285,7 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrWhiteSpace(maidataDir) || !Directory.Exists(maidataDir))
         {
-            MessageBox.Show("请先打开 maidata.txt。", "Music.xml生成",
+            MessageBox.Show("请先打开 maidata.txt。", "全部导出成opt结构",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }

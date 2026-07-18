@@ -84,15 +84,6 @@
                 <MenuItem x:Name="MenuGenerate" Header="生成" Foreground="{DynamicResource ButtonForeground}"
                           Template="{DynamicResource DarkMenuItem}">
                     <MenuItem x:Name="Menu_GenerateMa2" Header=".ma2谱面文件" Click="Menu_GenerateMa2_Click" />
-                    <MenuItem x:Name="Menu_ExportCoverVideo"
-                              Header="{lex:Loc ExportCoverAsVideo}"
-                              Click="Menu_ExportCoverVideo_Click" />
-                    <MenuItem x:Name="Menu_ExportAcbAwbAudio"
-                              Header="{lex:Loc ExportAcbAwbAudio}"
-                              Click="Menu_ExportAcbAwbAudio_Click" />
-                    <MenuItem x:Name="Menu_GenerateJacketAb"
-                              Header="{lex:Loc GenerateJacketAb}"
-                              Click="Menu_GenerateJacketAb_Click" />
                     <MenuItem x:Name="Menu_GenerateMusicXml"
                               Header="{lex:Loc GenerateMusicXml}"
                               Click="Menu_GenerateMusicXml_Click" />
