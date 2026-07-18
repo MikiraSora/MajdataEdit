@@ -71,13 +71,9 @@ public partial class CoverVideoExportWindow : Window
         }
 
         var baseMusicId = BaseMusicIdTextBox.Text.Trim();
-        string finalMusicId;
         try
         {
-            finalMusicId = ExportMusicId.BuildFinalMusicId(
-                baseMusicId,
-                IsUtageCheckBox.IsChecked == true,
-                IsDxCheckBox.IsChecked == true);
+            _ = ExportMusicId.BuildFinalMusicId(baseMusicId, isUtage: false, isDx: false);
         }
         catch (ArgumentException exception)
         {
@@ -117,7 +113,8 @@ public partial class CoverVideoExportWindow : Window
             return;
         }
 
-        var outputPath = Path.Combine(outputDirectory, finalMusicId + ".dat");
+        var movieDataDirectory = Path.Combine(outputDirectory, "MovieData");
+        var outputPath = Path.Combine(movieDataDirectory, "00" + baseMusicId + ".dat");
         if (File.Exists(outputPath))
         {
             var overwrite = MessageBox.Show("目标文件已存在，是否覆盖？\n" + outputPath, Title,
@@ -131,6 +128,7 @@ public partial class CoverVideoExportWindow : Window
         SetExportingState(true);
         try
         {
+            Directory.CreateDirectory(movieDataDirectory);
             var progress = new Progress<string>(message => StatusTextBlock.Text = message);
             await CoverVideoExporter.ExportAsync(sourceImagePath, outputPath, progress);
             MessageBox.Show("USM 格式 .dat 文件生成完成：\n" + outputPath, Title,

@@ -181,7 +181,7 @@
     <value>FinaleMusicId</value>
   </data>
   <data name="CoverVideoOutputExtensionHint" xml:space="preserve">
-    <value>Output: FinaleMusicId.dat</value>
+    <value>Output: MovieData/00{BaseMusicId}.dat</value>
   </data>
   <data name="CoverVideoOneSecondHint" xml:space="preserve">
     <value>Encodes bg.jpg as a one-second static H.264 USM and encrypts it with the fixed key.</value>
@@ -202,7 +202,7 @@
     <value>Source (track.mp3 in the current chart folder)</value>
   </data>
   <data name="AcbAudioOutputHint" xml:space="preserve">
-    <value>Output: music{FinaleMusicId}.acb/.awb</value>
+    <value>Output: SoundData/music00{BaseMusicId}.acb/.awb</value>
   </data>
   <data name="AcbAudioPreviewStart" xml:space="preserve">
     <value>Preview start position</value>
@@ -223,7 +223,7 @@
     <value>Source (bg.jpg in the current chart folder)</value>
   </data>
   <data name="JacketAbOutputHint" xml:space="preserve">
-    <value>Outputs to the jacket/ and jacket_s/ subfolders</value>
+    <value>Outputs to AssetBundleImages/jacket/ and AssetBundleImages/jacket_s/ using 00{BaseMusicId}</value>
   </data>
   <data name="JacketAbSdezHint" xml:space="preserve">
     <value>Generates normal and small Unity AssetBundle jackets in SDEZ mode.</value>

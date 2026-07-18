@@ -74,13 +74,10 @@ public partial class AcbAudioExportWindow : Window
         }
 
         var baseMusicId = BaseMusicIdTextBox.Text.Trim();
-        string finalMusicId;
+        string audioMusicId;
         try
         {
-            finalMusicId = ExportMusicId.BuildFinalMusicId(
-                baseMusicId,
-                IsUtageCheckBox.IsChecked == true,
-                IsDxCheckBox.IsChecked == true);
+            audioMusicId = ExportMusicId.BuildFinalMusicId(baseMusicId, isUtage: false, isDx: false);
         }
         catch (ArgumentException exception)
         {
@@ -127,9 +124,10 @@ public partial class AcbAudioExportWindow : Window
             return;
         }
 
-        var outputPrefix = "music" + finalMusicId;
-        var acbPath = Path.Combine(outputDirectory, outputPrefix + ".acb");
-        var awbPath = Path.Combine(outputDirectory, outputPrefix + ".awb");
+        var soundDataDirectory = Path.Combine(outputDirectory, "SoundData");
+        var outputPrefix = "music" + audioMusicId;
+        var acbPath = Path.Combine(soundDataDirectory, outputPrefix + ".acb");
+        var awbPath = Path.Combine(soundDataDirectory, outputPrefix + ".awb");
         if (File.Exists(acbPath) || File.Exists(awbPath))
         {
             var overwrite = MessageBox.Show(
@@ -146,11 +144,12 @@ public partial class AcbAudioExportWindow : Window
         SetExportingState(true);
         try
         {
+            Directory.CreateDirectory(soundDataDirectory);
             var progress = new Progress<string>(message => StatusTextBlock.Text = message);
             await AcbAudioExporter.ExportAsync(
                 sourceAudioPath,
-                outputDirectory,
-                finalMusicId,
+                soundDataDirectory,
+                audioMusicId,
                 previewStartMilliseconds,
                 previewEndMilliseconds,
                 progress);

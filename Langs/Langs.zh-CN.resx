@@ -579,7 +579,7 @@
     <value>FinaleMusicId</value>
   </data>
   <data name="CoverVideoOutputExtensionHint" xml:space="preserve">
-    <value>输出文件：FinaleMusicId.dat</value>
+    <value>输出文件：MovieData/00{BaseMusicId}.dat</value>
   </data>
   <data name="CoverVideoOneSecondHint" xml:space="preserve">
     <value>将 bg.jpg 编码为 1 秒静态 H.264 USM，并使用固定密钥加密。</value>
@@ -600,7 +600,7 @@
     <value>来源（当前谱面目录的 track.mp3）</value>
   </data>
   <data name="AcbAudioOutputHint" xml:space="preserve">
-    <value>输出：music{FinaleMusicId}.acb/.awb</value>
+    <value>输出：SoundData/music00{BaseMusicId}.acb/.awb</value>
   </data>
   <data name="AcbAudioPreviewStart" xml:space="preserve">
     <value>音频预览起始位置</value>
@@ -621,7 +621,7 @@
     <value>来源（当前谱面目录的 bg.jpg）</value>
   </data>
   <data name="JacketAbOutputHint" xml:space="preserve">
-    <value>输出到 jacket/ 与 jacket_s/ 子目录</value>
+    <value>输出到 AssetBundleImages/jacket/ 与 AssetBundleImages/jacket_s/ 子目录，文件名使用 00{BaseMusicId}</value>
   </data>
   <data name="JacketAbSdezHint" xml:space="preserve">
     <value>以 SDEZ 模式生成大、小两种 Unity AssetBundle 封面。</value>

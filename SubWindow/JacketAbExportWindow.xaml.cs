@@ -70,10 +70,10 @@ public partial class JacketAbExportWindow : Window
         }
 
         var baseMusicId = BaseMusicIdTextBox.Text.Trim();
-        string finalMusicId;
+        string jacketMusicId;
         try
         {
-            finalMusicId = ExportMusicId.BuildFinalMusicId(baseMusicId, isUtage: false, isDx: false);
+            jacketMusicId = ExportMusicId.BuildFinalMusicId(baseMusicId, isUtage: false, isDx: false);
         }
         catch (ArgumentException exception)
         {
@@ -111,8 +111,15 @@ public partial class JacketAbExportWindow : Window
             return;
         }
 
-        var normalPath = Path.Combine(outputDirectory, "jacket", $"ui_jacket_{finalMusicId}.ab");
-        var smallPath = Path.Combine(outputDirectory, "jacket_s", $"ui_jacket_{finalMusicId}_s.ab");
+        var assetBundleImagesDirectory = Path.Combine(outputDirectory, "AssetBundleImages");
+        var normalPath = Path.Combine(
+            assetBundleImagesDirectory,
+            "jacket",
+            $"ui_jacket_{jacketMusicId}.ab");
+        var smallPath = Path.Combine(
+            assetBundleImagesDirectory,
+            "jacket_s",
+            $"ui_jacket_{jacketMusicId}_s.ab");
         if (File.Exists(normalPath) || File.Exists(smallPath))
         {
             var overwrite = MessageBox.Show(
@@ -132,8 +139,8 @@ public partial class JacketAbExportWindow : Window
             var progress = new Progress<string>(message => StatusTextBlock.Text = message);
             await JacketAbExporter.ExportAsync(
                 sourceImagePath,
-                outputDirectory,
-                finalMusicId,
+                assetBundleImagesDirectory,
+                jacketMusicId,
                 progress);
             MessageBox.Show("封面 AB 文件生成完成：\n" + normalPath + "\n" + smallPath, Title,
                 MessageBoxButton.OK, MessageBoxImage.Information);
