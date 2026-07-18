@@ -6,7 +6,8 @@
         lex:ResxLocalizationProvider.DefaultAssembly="MajdataEdit"
         lex:ResxLocalizationProvider.DefaultDictionary="Langs"
         Title="{lex:Loc GenerateMusicXml}"
-        SizeToContent="WidthAndHeight"
+        Width="1040"
+        MinWidth="900"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackground}"
         Closing="Window_Closing">
