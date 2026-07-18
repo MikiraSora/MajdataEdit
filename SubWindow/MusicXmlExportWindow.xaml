@@ -6,10 +6,7 @@
         lex:ResxLocalizationProvider.DefaultAssembly="MajdataEdit"
         lex:ResxLocalizationProvider.DefaultDictionary="Langs"
         Title="{lex:Loc GenerateMusicXml}"
-        Height="790"
-        Width="1040"
-        MinHeight="680"
-        MinWidth="900"
+        SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource WindowBackground}"
         Closing="Window_Closing">
@@ -20,8 +17,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
+        <Grid>
             <StackPanel x:Name="InputPanel" Margin="0,0,8,0">
                 <TextBlock Text="{lex:Loc CoverVideoOutputDirectory}"
                            Foreground="{DynamicResource ButtonForeground}"
@@ -335,7 +331,7 @@
                     </StackPanel>
                 </GroupBox>
             </StackPanel>
-        </ScrollViewer>
+        </Grid>
 
         <StackPanel x:Name="ResourceOptionsPanel"
                     Grid.Row="1"
