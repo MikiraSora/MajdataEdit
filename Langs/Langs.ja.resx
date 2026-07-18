@@ -616,4 +616,25 @@ Open Browser to download latest update of Majdata?</value>
   <data name="CoverVideoCancel" xml:space="preserve">
     <value>キャンセル</value>
   </data>
+  <data name="ExportAcbAwbAudio" xml:space="preserve">
+    <value>ACB/AWB 音声</value>
+  </data>
+  <data name="AcbAudioExportTitle" xml:space="preserve">
+    <value>ACB/AWB 音声</value>
+  </data>
+  <data name="AcbAudioSource" xml:space="preserve">
+    <value>入力（現在の譜面フォルダーの track.mp3）</value>
+  </data>
+  <data name="AcbAudioOutputHint" xml:space="preserve">
+    <value>出力：music{FinaleMusicId}.acb/.awb</value>
+  </data>
+  <data name="AcbAudioPreviewStart" xml:space="preserve">
+    <value>プレビュー開始位置</value>
+  </data>
+  <data name="AcbAudioPreviewEnd" xml:space="preserve">
+    <value>プレビュー終了位置</value>
+  </data>
+  <data name="AcbAudioSdezHint" xml:space="preserve">
+    <value>SDEZ モードで暗号化済み 192 Kbps HCA と ACB/AWB を生成します。</value>
+  </data>
 </root>

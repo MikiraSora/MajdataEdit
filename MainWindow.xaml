@@ -87,6 +87,9 @@
                     <MenuItem x:Name="Menu_ExportCoverVideo"
                               Header="{lex:Loc ExportCoverAsVideo}"
                               Click="Menu_ExportCoverVideo_Click" />
+                    <MenuItem x:Name="Menu_ExportAcbAwbAudio"
+                              Header="{lex:Loc ExportAcbAwbAudio}"
+                              Click="Menu_ExportAcbAwbAudio_Click" />
                 </MenuItem>
             </Menu>
         </DockPanel>

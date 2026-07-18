@@ -37,6 +37,12 @@
         <PackageReference Include="XAMLMarkupExtensions" Version="2.1.3" />
     </ItemGroup>
     <ItemGroup>
+        <Reference Include="AcbGeneratorFuck">
+            <HintPath>ThirdParty\AcbGeneratorFuck\AcbGeneratorFuck.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+    </ItemGroup>
+    <ItemGroup>
         <ContentWithTargetPath Include="bass.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>bass.dll</TargetPath>

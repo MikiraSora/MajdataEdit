@@ -590,4 +590,25 @@
   <data name="CoverVideoCancel" xml:space="preserve">
     <value>取消</value>
   </data>
+  <data name="ExportAcbAwbAudio" xml:space="preserve">
+    <value>acb/awb音频</value>
+  </data>
+  <data name="AcbAudioExportTitle" xml:space="preserve">
+    <value>acb/awb音频</value>
+  </data>
+  <data name="AcbAudioSource" xml:space="preserve">
+    <value>来源（当前谱面目录的 track.mp3）</value>
+  </data>
+  <data name="AcbAudioOutputHint" xml:space="preserve">
+    <value>输出：music{FinaleMusicId}.acb/.awb</value>
+  </data>
+  <data name="AcbAudioPreviewStart" xml:space="preserve">
+    <value>音频预览起始位置</value>
+  </data>
+  <data name="AcbAudioPreviewEnd" xml:space="preserve">
+    <value>音频预览中止位置</value>
+  </data>
+  <data name="AcbAudioSdezHint" xml:space="preserve">
+    <value>以 SDEZ 模式生成 192 Kbps 加密 HCA 音频及配套 ACB/AWB。</value>
+  </data>
 </root>

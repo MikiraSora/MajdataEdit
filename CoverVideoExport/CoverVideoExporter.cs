@@ -8,16 +8,6 @@ internal static class CoverVideoExporter
 {
     public const ulong EncryptionKey = 0x7F4551499DF55E68;
 
-    public static string BuildFinalMusicId(string baseMusicId, bool isUtage, bool isDx)
-    {
-        if (baseMusicId.Length != 4 || baseMusicId.Any(character => character is < '0' or > '9'))
-        {
-            throw new ArgumentException("BaseMusicId 必须是四位数字。", nameof(baseMusicId));
-        }
-
-        return $"{(isUtage ? '1' : '0')}{(isDx ? '1' : '0')}{baseMusicId}";
-    }
-
     public static async Task ExportAsync(
         string sourceImagePath,
         string outputPath,
