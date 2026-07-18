@@ -135,23 +135,38 @@ internal static class SimaiProcess
     /// <returns>the song time at the position</returns>
     public static double Serialize(string text, long position = 0)
     {
-        var _notelist = new List<SimaiTimingPoint>();
-        var _timinglist = new List<SimaiTimingPoint>();
         try
         {
             var chart = SimaiParser.ParseChart(text, position, HSpeedInterpolationGrid, out var requestTime);
 
             notelist = chart.NoteTimings.ToArray().ToList();
             timinglist = chart.CommaTimings.ToArray().ToList();
+            ApplyOffset(first);
             EachAnalysis = EachNoteAnalysis.Analyze(notelist);
 
-            return requestTime;
+            return requestTime + first;
         }
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
             return 0;
         }
+    }
+
+    private static void ApplyOffset(double offset)
+    {
+        if (offset == 0) return;
+
+        foreach (var timingPoint in notelist)
+        {
+            timingPoint.Timing += offset;
+            foreach (var note in timingPoint.Notes)
+                if (note.Type == SimaiNoteType.Slide)
+                    note.SlideStartTime += offset;
+        }
+
+        foreach (var timingPoint in timinglist)
+            timingPoint.Timing += offset;
     }
 
     public static void ClearNoteListPlayedState()
