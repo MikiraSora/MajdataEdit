@@ -18,6 +18,7 @@ public partial class CoverVideoExportWindow : Window
         InitializeComponent();
         SourceImageTextBox.Text = Path.Combine(chartDirectory, "bg.jpg");
         DataObject.AddPastingHandler(BaseMusicIdTextBox, BaseMusicIdTextBox_OnPaste);
+        LoadExportSettings();
         UpdateFinalMusicIdPreview();
     }
 
@@ -84,6 +85,24 @@ public partial class CoverVideoExportWindow : Window
             return;
         }
 
+        try
+        {
+            CoverVideoExportSettingsStore.Save(
+                _chartDirectory,
+                new CoverVideoExportSettings
+                {
+                    BaseMusicId = baseMusicId,
+                    IsUtage = IsUtageCheckBox.IsChecked == true,
+                    IsDx = IsDxCheckBox.IsChecked == true
+                });
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show("无法更新 export.json：\n" + exception.Message, Title,
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
         var outputDirectory = OutputDirectoryTextBox.Text;
         if (string.IsNullOrWhiteSpace(outputDirectory) || !Directory.Exists(outputDirectory))
         {
@@ -145,6 +164,21 @@ public partial class CoverVideoExportWindow : Window
         var prefix = $"{(IsUtageCheckBox?.IsChecked == true ? '1' : '0')}" +
                      $"{(IsDxCheckBox?.IsChecked == true ? '1' : '0')}";
         FinalMusicIdTextBox.Text = prefix + BaseMusicIdTextBox.Text.PadRight(4, '_');
+    }
+
+    private void LoadExportSettings()
+    {
+        try
+        {
+            var settings = CoverVideoExportSettingsStore.Load(_chartDirectory);
+            BaseMusicIdTextBox.Text = settings.BaseMusicId;
+            IsUtageCheckBox.IsChecked = settings.IsUtage;
+            IsDxCheckBox.IsChecked = settings.IsDx;
+        }
+        catch (Exception exception)
+        {
+            StatusTextBlock.Text = "读取 export.json 失败：" + exception.Message;
+        }
     }
 
     private void SetExportingState(bool exporting)
