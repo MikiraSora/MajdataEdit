@@ -15,6 +15,46 @@ internal sealed class ExportSettings
     public int AudioPreviewStartMilliseconds { get; set; } = 60_000;
 
     public int AudioPreviewEndMilliseconds { get; set; } = 80_000;
+
+    public MusicXmlExportSettings? MusicXml { get; set; }
+}
+
+internal sealed class MusicXmlExportSettings
+{
+    public string OutputDirectory { get; set; } = string.Empty;
+
+    public string TemplatePath { get; set; } = string.Empty;
+
+    public string? MusicName { get; set; }
+
+    public string? ArtistName { get; set; }
+
+    public int GenreId { get; set; } = 105;
+
+    public string GenreName { get; set; } = "maimai";
+
+    public string? Bpm { get; set; }
+
+    public bool LongMusic { get; set; }
+
+    public string UtageKanjiName { get; set; } = string.Empty;
+
+    public string Comment { get; set; } = string.Empty;
+
+    public List<MusicXmlDifficultySettings> Difficulties { get; set; } = new();
+}
+
+internal sealed class MusicXmlDifficultySettings
+{
+    public int SlotIndex { get; set; }
+
+    public bool IsEnabled { get; set; }
+
+    public int InoteIndex { get; set; }
+
+    public string Level { get; set; } = string.Empty;
+
+    public string Designer { get; set; } = string.Empty;
 }
 
 internal static class ExportMusicId

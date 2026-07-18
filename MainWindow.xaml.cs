@@ -281,6 +281,27 @@ public partial class MainWindow : Window
         exportWindow.ShowDialog();
     }
 
+    private void Menu_GenerateMusicXml_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(maidataDir) || !Directory.Exists(maidataDir))
+        {
+            MessageBox.Show("请先打开 maidata.txt。", "Music.xml生成",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        if (selectedDifficulty >= 0 && selectedDifficulty < SimaiProcess.fumens.Length)
+        {
+            SimaiProcess.fumens[selectedDifficulty] = GetRawFumenText();
+        }
+
+        var exportWindow = new MusicXmlExportWindow(maidataDir)
+        {
+            Owner = this
+        };
+        exportWindow.ShowDialog();
+    }
+
     private void Menu_GenerateMa2_Click(object sender, RoutedEventArgs e)
     {
         if (selectedDifficulty == -1 || string.IsNullOrWhiteSpace(maidataDir))

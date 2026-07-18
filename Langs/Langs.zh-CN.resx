@@ -626,4 +626,58 @@
   <data name="JacketAbSdezHint" xml:space="preserve">
     <value>以 SDEZ 模式生成大、小两种 Unity AssetBundle 封面。</value>
   </data>
+  <data name="GenerateMusicXml" xml:space="preserve">
+    <value>Music.xml生成</value>
+  </data>
+  <data name="MusicXmlTemplate" xml:space="preserve">
+    <value>基础 Music.xml 模板</value>
+  </data>
+  <data name="MusicXmlImportTemplate" xml:space="preserve">
+    <value>导入模板</value>
+  </data>
+  <data name="MusicXmlBasicInformation" xml:space="preserve">
+    <value>歌曲基本信息</value>
+  </data>
+  <data name="MusicXmlBpm" xml:space="preserve">
+    <value>BPM</value>
+  </data>
+  <data name="MusicXmlMusicName" xml:space="preserve">
+    <value>歌曲名（name.str）</value>
+  </data>
+  <data name="MusicXmlArtistName" xml:space="preserve">
+    <value>艺术家（artistName.str）</value>
+  </data>
+  <data name="MusicXmlGenre" xml:space="preserve">
+    <value>歌曲分类</value>
+  </data>
+  <data name="MusicXmlUtageKanjiName" xml:space="preserve">
+    <value>宴会场汉字名</value>
+  </data>
+  <data name="MusicXmlLongMusic" xml:space="preserve">
+    <value>长曲（longMusic=1）</value>
+  </data>
+  <data name="MusicXmlComment" xml:space="preserve">
+    <value>宴谱备注</value>
+  </data>
+  <data name="MusicXmlDifficultyExport" xml:space="preserve">
+    <value>难度与 MA2 导出</value>
+  </data>
+  <data name="MusicXmlTargetDifficulty" xml:space="preserve">
+    <value>目标难度</value>
+  </data>
+  <data name="MusicXmlEnable" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="MusicXmlInoteSource" xml:space="preserve">
+    <value>simai inote 来源</value>
+  </data>
+  <data name="MusicXmlLevelConstant" xml:space="preserve">
+    <value>难度定数 xx.xx</value>
+  </data>
+  <data name="MusicXmlDesigner" xml:space="preserve">
+    <value>谱师名</value>
+  </data>
+  <data name="MusicXmlOutputHint" xml:space="preserve">
+    <value>输出到 outputDir/music/music{FinaleMusicId}/Music.xml，并为所有启用难度生成 {FinaleMusicId}_{xx}.ma2。</value>
+  </data>
 </root>

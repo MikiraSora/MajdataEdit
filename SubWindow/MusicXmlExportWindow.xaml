@@ -1,0 +1,376 @@
+<Window x:Class="MajdataEdit.MusicXmlExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lex="http://wpflocalizeextension.codeplex.com"
+        lex:LocalizeDictionary.DesignCulture="zh-CN"
+        lex:ResxLocalizationProvider.DefaultAssembly="MajdataEdit"
+        lex:ResxLocalizationProvider.DefaultDictionary="Langs"
+        Title="{lex:Loc GenerateMusicXml}"
+        Height="790"
+        Width="1040"
+        MinHeight="680"
+        MinWidth="900"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackground}"
+        Closing="Window_Closing">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="InputPanel" Margin="0,0,8,0">
+                <TextBlock Text="{lex:Loc CoverVideoOutputDirectory}"
+                           Foreground="{DynamicResource ButtonForeground}"
+                           FontWeight="Bold" />
+                <Grid Margin="0,6,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="OutputDirectoryTextBox"
+                             Height="28"
+                             IsReadOnly="True"
+                             VerticalContentAlignment="Center"
+                             Background="{DynamicResource ButtonsBackground}"
+                             Foreground="{DynamicResource ButtonForeground}" />
+                    <Button Grid.Column="1"
+                            Content="{lex:Loc CoverVideoSelectOutputDirectory}"
+                            Width="108"
+                            Height="28"
+                            Margin="8,0,0,0"
+                            Click="SelectOutputDirectory_Click"
+                            Background="{DynamicResource ButtonsBackground}"
+                            Foreground="{DynamicResource ButtonForeground}"
+                            Template="{DynamicResource DarkButton}" />
+                </Grid>
+
+                <TextBlock Text="{lex:Loc MusicXmlTemplate}"
+                           Foreground="{DynamicResource ButtonForeground}"
+                           FontWeight="Bold" />
+                <Grid Margin="0,6,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="TemplatePathTextBox"
+                             Height="28"
+                             IsReadOnly="True"
+                             VerticalContentAlignment="Center"
+                             Background="{DynamicResource ButtonsBackground}"
+                             Foreground="{DynamicResource ButtonForeground}" />
+                    <Button Grid.Column="1"
+                            Content="{lex:Loc MusicXmlImportTemplate}"
+                            Width="108"
+                            Height="28"
+                            Margin="8,0,0,0"
+                            Click="ImportTemplate_Click"
+                            Background="{DynamicResource ButtonsBackground}"
+                            Foreground="{DynamicResource ButtonForeground}"
+                            Template="{DynamicResource DarkButton}" />
+                </Grid>
+
+                <GroupBox Header="{lex:Loc MusicXmlBasicInformation}"
+                          Foreground="{DynamicResource ButtonForeground}"
+                          Margin="0,0,0,14"
+                          Padding="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="132" />
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="26" />
+                            <ColumnDefinition Width="132" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="{lex:Loc CoverVideoBaseMusicId}"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <TextBox x:Name="BaseMusicIdTextBox"
+                                 Grid.Column="1"
+                                 Height="28"
+                                 MaxLength="4"
+                                 HorizontalContentAlignment="Center"
+                                 VerticalContentAlignment="Center"
+                                 FontFamily="Consolas"
+                                 FontSize="15"
+                                 PreviewTextInput="NumericTextBox_PreviewTextInput"
+                                 TextChanged="MusicIdOption_Changed"
+                                 Background="{DynamicResource ButtonsBackground}"
+                                 Foreground="{DynamicResource ButtonForeground}" />
+                        <StackPanel Grid.Column="3" Grid.ColumnSpan="2" Orientation="Horizontal">
+                            <CheckBox x:Name="IsUtageCheckBox"
+                                      Content="{lex:Loc CoverVideoIsUtage}"
+                                      Width="125"
+                                      Checked="MusicIdOption_Changed"
+                                      Unchecked="MusicIdOption_Changed"
+                                      Background="{DynamicResource ButtonsBackground}"
+                                      Foreground="{DynamicResource ButtonForeground}"
+                                      Template="{DynamicResource DarkCheck}" />
+                            <CheckBox x:Name="IsDxCheckBox"
+                                      Content="{lex:Loc CoverVideoIsDx}"
+                                      Checked="MusicIdOption_Changed"
+                                      Unchecked="MusicIdOption_Changed"
+                                      Background="{DynamicResource ButtonsBackground}"
+                                      Foreground="{DynamicResource ButtonForeground}"
+                                      Template="{DynamicResource DarkCheck}" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Text="{lex:Loc CoverVideoFinalMusicId}"
+                                   Margin="0,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <TextBox x:Name="FinalMusicIdTextBox"
+                                 Grid.Row="1"
+                                 Grid.Column="1"
+                                 Height="28"
+                                 Margin="0,8,0,0"
+                                 IsReadOnly="True"
+                                 HorizontalContentAlignment="Center"
+                                 VerticalContentAlignment="Center"
+                                 FontFamily="Consolas"
+                                 FontSize="15"
+                                 Background="{DynamicResource ButtonsBackground}"
+                                 Foreground="{DynamicResource ButtonForeground}" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="3"
+                                   Text="{lex:Loc MusicXmlBpm}"
+                                   Margin="0,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <TextBox x:Name="BpmTextBox"
+                                 Grid.Row="1"
+                                 Grid.Column="4"
+                                 Width="120"
+                                 Height="28"
+                                 Margin="0,8,0,0"
+                                 HorizontalAlignment="Left"
+                                 HorizontalContentAlignment="Right"
+                                 VerticalContentAlignment="Center"
+                                 MaxLength="5"
+                                 PreviewTextInput="NumericTextBox_PreviewTextInput"
+                                 Background="{DynamicResource ButtonsBackground}"
+                                 Foreground="{DynamicResource ButtonForeground}" />
+
+                        <TextBlock Grid.Row="2"
+                                   Text="{lex:Loc MusicXmlMusicName}"
+                                   Margin="0,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <TextBox x:Name="MusicNameTextBox"
+                                 Grid.Row="2"
+                                 Grid.Column="1"
+                                 Grid.ColumnSpan="4"
+                                 Height="28"
+                                 Margin="0,8,0,0"
+                                 VerticalContentAlignment="Center"
+                                 Background="{DynamicResource ButtonsBackground}"
+                                 Foreground="{DynamicResource ButtonForeground}" />
+
+                        <TextBlock Grid.Row="3"
+                                   Text="{lex:Loc MusicXmlArtistName}"
+                                   Margin="0,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <TextBox x:Name="ArtistNameTextBox"
+                                 Grid.Row="3"
+                                 Grid.Column="1"
+                                 Height="28"
+                                 Margin="0,8,0,0"
+                                 VerticalContentAlignment="Center"
+                                 Background="{DynamicResource ButtonsBackground}"
+                                 Foreground="{DynamicResource ButtonForeground}" />
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="3"
+                                   Text="{lex:Loc MusicXmlGenre}"
+                                   Margin="0,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <ComboBox x:Name="GenreComboBox"
+                                  Grid.Row="3"
+                                  Grid.Column="4"
+                                  Height="28"
+                                  Margin="0,8,0,0"
+                                  ItemsSource="{Binding GenreOptions}"
+                                  Background="{DynamicResource ButtonsBackground}"
+                                  Foreground="{DynamicResource ButtonForeground}"
+                                  Template="{DynamicResource DarkComboBox}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <TextBlock x:Name="UtageKanjiNameLabel"
+                                   Grid.Row="4"
+                                   Text="{lex:Loc MusicXmlUtageKanjiName}"
+                                   Margin="0,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <TextBox x:Name="UtageKanjiNameTextBox"
+                                 Grid.Row="4"
+                                 Grid.Column="1"
+                                 Height="28"
+                                 Margin="0,8,0,0"
+                                 VerticalContentAlignment="Center"
+                                 Background="{DynamicResource ButtonsBackground}"
+                                 Foreground="{DynamicResource ButtonForeground}" />
+                        <CheckBox x:Name="LongMusicCheckBox"
+                                  Grid.Row="4"
+                                  Grid.Column="3"
+                                  Content="{lex:Loc MusicXmlLongMusic}"
+                                  Margin="0,8,0,0"
+                                  VerticalAlignment="Center"
+                                  Background="{DynamicResource ButtonsBackground}"
+                                  Foreground="{DynamicResource ButtonForeground}"
+                                  Template="{DynamicResource DarkCheck}" />
+
+                        <TextBlock x:Name="UtageCommentLabel"
+                                   Grid.Row="5"
+                                   Text="{lex:Loc MusicXmlComment}"
+                                   Margin="0,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" />
+                        <TextBox x:Name="CommentTextBox"
+                                 Grid.Row="5"
+                                 Grid.Column="1"
+                                 Grid.ColumnSpan="4"
+                                 Height="28"
+                                 Margin="0,8,0,0"
+                                 VerticalContentAlignment="Center"
+                                 Background="{DynamicResource ButtonsBackground}"
+                                 Foreground="{DynamicResource ButtonForeground}" />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="{lex:Loc MusicXmlDifficultyExport}"
+                          Foreground="{DynamicResource ButtonForeground}"
+                          Padding="10">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92" />
+                                <ColumnDefinition Width="72" />
+                                <ColumnDefinition Width="300" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{lex:Loc MusicXmlTargetDifficulty}" FontWeight="Bold" />
+                            <TextBlock Grid.Column="1" Text="{lex:Loc MusicXmlEnable}" FontWeight="Bold" />
+                            <TextBlock Grid.Column="2" Text="{lex:Loc MusicXmlInoteSource}" FontWeight="Bold" />
+                            <TextBlock Grid.Column="3" Text="{lex:Loc MusicXmlLevelConstant}" FontWeight="Bold" />
+                            <TextBlock Grid.Column="4" Text="{lex:Loc MusicXmlDesigner}" FontWeight="Bold" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding DifficultyRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3" Visibility="{Binding RowVisibility}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="92" />
+                                            <ColumnDefinition Width="72" />
+                                            <ColumnDefinition Width="300" />
+                                            <ColumnDefinition Width="130" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding SlotName}"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="Consolas"
+                                                   FontWeight="Bold" />
+                                        <CheckBox Grid.Column="1"
+                                                  IsChecked="{Binding IsExportEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  VerticalAlignment="Center"
+                                                  Background="{DynamicResource ButtonsBackground}"
+                                                  Foreground="{DynamicResource ButtonForeground}"
+                                                  Template="{DynamicResource DarkCheck}" />
+                                        <ComboBox Grid.Column="2"
+                                                  Height="28"
+                                                  Margin="0,0,10,0"
+                                                  IsEnabled="{Binding IsExportEnabled}"
+                                                  ItemsSource="{Binding InoteOptions}"
+                                                  SelectedValuePath="Index"
+                                                  SelectedValue="{Binding InoteIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Background="{DynamicResource ButtonsBackground}"
+                                                  Foreground="{DynamicResource ButtonForeground}"
+                                                  Template="{DynamicResource DarkComboBox}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding DisplayName}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBox Grid.Column="3"
+                                                 Height="28"
+                                                 Margin="0,0,10,0"
+                                                 IsEnabled="{Binding IsExportEnabled}"
+                                                 Text="{Binding Level, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 HorizontalContentAlignment="Right"
+                                                 VerticalContentAlignment="Center"
+                                                 FontFamily="Consolas"
+                                                 Background="{DynamicResource ButtonsBackground}"
+                                                 Foreground="{DynamicResource ButtonForeground}" />
+                                        <TextBox Grid.Column="4"
+                                                 Height="28"
+                                                 IsEnabled="{Binding IsExportEnabled}"
+                                                 Text="{Binding Designer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 VerticalContentAlignment="Center"
+                                                 Background="{DynamicResource ButtonsBackground}"
+                                                 Foreground="{DynamicResource ButtonForeground}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </GroupBox>
+
+                <TextBlock Margin="0,10,0,0"
+                           Text="{lex:Loc MusicXmlOutputHint}"
+                           TextWrapping="Wrap"
+                           Opacity="0.8"
+                           Foreground="{DynamicResource ButtonForeground}" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" Margin="0,16,8,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusTextBlock"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource ButtonForeground}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="ConfirmButton"
+                        Content="{lex:Loc CoverVideoConfirm}"
+                        Width="84"
+                        Height="28"
+                        Margin="0,0,8,0"
+                        IsDefault="True"
+                        Click="ConfirmButton_Click"
+                        Background="{DynamicResource ButtonsBackground}"
+                        Foreground="{DynamicResource ButtonForeground}"
+                        Template="{DynamicResource DarkButton}" />
+                <Button x:Name="CancelButton"
+                        Content="{lex:Loc CoverVideoCancel}"
+                        Width="84"
+                        Height="28"
+                        IsCancel="True"
+                        Background="{DynamicResource ButtonsBackground}"
+                        Foreground="{DynamicResource ButtonForeground}"
+                        Template="{DynamicResource DarkButton}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

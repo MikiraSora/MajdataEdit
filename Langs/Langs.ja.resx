@@ -652,4 +652,58 @@ Open Browser to download latest update of Majdata?</value>
   <data name="JacketAbSdezHint" xml:space="preserve">
     <value>SDEZ モードで通常・小型のジャケット AssetBundle を生成します。</value>
   </data>
+  <data name="GenerateMusicXml" xml:space="preserve">
+    <value>Music.xmlを生成</value>
+  </data>
+  <data name="MusicXmlTemplate" xml:space="preserve">
+    <value>基本 Music.xml テンプレート</value>
+  </data>
+  <data name="MusicXmlImportTemplate" xml:space="preserve">
+    <value>テンプレートを読込</value>
+  </data>
+  <data name="MusicXmlBasicInformation" xml:space="preserve">
+    <value>楽曲基本情報</value>
+  </data>
+  <data name="MusicXmlBpm" xml:space="preserve">
+    <value>BPM</value>
+  </data>
+  <data name="MusicXmlMusicName" xml:space="preserve">
+    <value>曲名（name.str）</value>
+  </data>
+  <data name="MusicXmlArtistName" xml:space="preserve">
+    <value>アーティスト（artistName.str）</value>
+  </data>
+  <data name="MusicXmlGenre" xml:space="preserve">
+    <value>ジャンル</value>
+  </data>
+  <data name="MusicXmlUtageKanjiName" xml:space="preserve">
+    <value>宴漢字名</value>
+  </data>
+  <data name="MusicXmlLongMusic" xml:space="preserve">
+    <value>ロング楽曲（longMusic=1）</value>
+  </data>
+  <data name="MusicXmlComment" xml:space="preserve">
+    <value>宴譜面コメント</value>
+  </data>
+  <data name="MusicXmlDifficultyExport" xml:space="preserve">
+    <value>難易度と MA2 出力</value>
+  </data>
+  <data name="MusicXmlTargetDifficulty" xml:space="preserve">
+    <value>対象難易度</value>
+  </data>
+  <data name="MusicXmlEnable" xml:space="preserve">
+    <value>有効</value>
+  </data>
+  <data name="MusicXmlInoteSource" xml:space="preserve">
+    <value>simai inote 元</value>
+  </data>
+  <data name="MusicXmlLevelConstant" xml:space="preserve">
+    <value>難易度定数 xx.xx</value>
+  </data>
+  <data name="MusicXmlDesigner" xml:space="preserve">
+    <value>譜面作者</value>
+  </data>
+  <data name="MusicXmlOutputHint" xml:space="preserve">
+    <value>outputDir/music/music{FinaleMusicId}/ に Music.xml を出力し、有効な難易度ごとに {FinaleMusicId}_{xx}.ma2 を生成します。</value>
+  </data>
 </root>

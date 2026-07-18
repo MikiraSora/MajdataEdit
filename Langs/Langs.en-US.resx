@@ -616,4 +616,58 @@ Click OK to start render.</value>
   <data name="JacketAbSdezHint" xml:space="preserve">
     <value>Generates normal and small Unity AssetBundle jackets in SDEZ mode.</value>
   </data>
+  <data name="GenerateMusicXml" xml:space="preserve">
+    <value>Generate Music.xml</value>
+  </data>
+  <data name="MusicXmlTemplate" xml:space="preserve">
+    <value>Base Music.xml template</value>
+  </data>
+  <data name="MusicXmlImportTemplate" xml:space="preserve">
+    <value>Import template</value>
+  </data>
+  <data name="MusicXmlBasicInformation" xml:space="preserve">
+    <value>Music information</value>
+  </data>
+  <data name="MusicXmlBpm" xml:space="preserve">
+    <value>BPM</value>
+  </data>
+  <data name="MusicXmlMusicName" xml:space="preserve">
+    <value>Music name (name.str)</value>
+  </data>
+  <data name="MusicXmlArtistName" xml:space="preserve">
+    <value>Artist (artistName.str)</value>
+  </data>
+  <data name="MusicXmlGenre" xml:space="preserve">
+    <value>Genre</value>
+  </data>
+  <data name="MusicXmlUtageKanjiName" xml:space="preserve">
+    <value>Utage kanji name</value>
+  </data>
+  <data name="MusicXmlLongMusic" xml:space="preserve">
+    <value>Long music (longMusic=1)</value>
+  </data>
+  <data name="MusicXmlComment" xml:space="preserve">
+    <value>Utage comment</value>
+  </data>
+  <data name="MusicXmlDifficultyExport" xml:space="preserve">
+    <value>Difficulty and MA2 export</value>
+  </data>
+  <data name="MusicXmlTargetDifficulty" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="MusicXmlEnable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="MusicXmlInoteSource" xml:space="preserve">
+    <value>Simai inote source</value>
+  </data>
+  <data name="MusicXmlLevelConstant" xml:space="preserve">
+    <value>Level constant xx.xx</value>
+  </data>
+  <data name="MusicXmlDesigner" xml:space="preserve">
+    <value>Chart designer</value>
+  </data>
+  <data name="MusicXmlOutputHint" xml:space="preserve">
+    <value>Outputs Music.xml to outputDir/music/music{FinaleMusicId}/ and generates {FinaleMusicId}_{xx}.ma2 for every enabled difficulty.</value>
+  </data>
 </root>

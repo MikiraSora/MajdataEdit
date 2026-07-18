@@ -93,6 +93,9 @@
                     <MenuItem x:Name="Menu_GenerateJacketAb"
                               Header="{lex:Loc GenerateJacketAb}"
                               Click="Menu_GenerateJacketAb_Click" />
+                    <MenuItem x:Name="Menu_GenerateMusicXml"
+                              Header="{lex:Loc GenerateMusicXml}"
+                              Click="Menu_GenerateMusicXml_Click" />
                 </MenuItem>
             </Menu>
         </DockPanel>
