@@ -90,6 +90,9 @@
                     <MenuItem x:Name="Menu_ExportAcbAwbAudio"
                               Header="{lex:Loc ExportAcbAwbAudio}"
                               Click="Menu_ExportAcbAwbAudio_Click" />
+                    <MenuItem x:Name="Menu_GenerateJacketAb"
+                              Header="{lex:Loc GenerateJacketAb}"
+                              Click="Menu_GenerateJacketAb_Click" />
                 </MenuItem>
             </Menu>
         </DockPanel>

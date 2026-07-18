@@ -41,6 +41,26 @@
             <HintPath>ThirdParty\AcbGeneratorFuck\AcbGeneratorFuck.dll</HintPath>
             <Private>true</Private>
         </Reference>
+        <Reference Include="AssetsTools.NET">
+            <HintPath>ThirdParty\JacketGenerator\AssetsTools.NET.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+        <Reference Include="JacketGenerator">
+            <HintPath>ThirdParty\JacketGenerator\JacketGenerator.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+        <Reference Include="Mono.Cecil">
+            <HintPath>ThirdParty\JacketGenerator\Mono.Cecil.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+        <Reference Include="SixLabors.ImageSharp">
+            <HintPath>ThirdParty\JacketGenerator\SixLabors.ImageSharp.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+        <Reference Include="TexturePlugin">
+            <HintPath>ThirdParty\JacketGenerator\TexturePlugin.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <ContentWithTargetPath Include="bass.dll">
@@ -54,6 +74,22 @@
         <ContentWithTargetPath Include="slide_time.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>slide_time.json</TargetPath>
+        </ContentWithTargetPath>
+        <ContentWithTargetPath Include="ThirdParty\JacketGenerator\crnlib.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>crnlib.dll</TargetPath>
+        </ContentWithTargetPath>
+        <ContentWithTargetPath Include="ThirdParty\JacketGenerator\ispc_texcomp.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>ispc_texcomp.dll</TargetPath>
+        </ContentWithTargetPath>
+        <ContentWithTargetPath Include="ThirdParty\JacketGenerator\PVRTexLib.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>PVRTexLib.dll</TargetPath>
+        </ContentWithTargetPath>
+        <ContentWithTargetPath Include="ThirdParty\JacketGenerator\TexToolWrap.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>TexToolWrap.dll</TargetPath>
         </ContentWithTargetPath>
                 <ContentWithTargetPath Include="LICENSE">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

@@ -637,4 +637,19 @@ Open Browser to download latest update of Majdata?</value>
   <data name="AcbAudioSdezHint" xml:space="preserve">
     <value>SDEZ モードで暗号化済み 192 Kbps HCA と ACB/AWB を生成します。</value>
   </data>
+  <data name="GenerateJacketAb" xml:space="preserve">
+    <value>ジャケットABフォルダー</value>
+  </data>
+  <data name="JacketAbExportTitle" xml:space="preserve">
+    <value>ジャケットABフォルダー</value>
+  </data>
+  <data name="JacketAbSource" xml:space="preserve">
+    <value>入力（現在の譜面フォルダーの bg.jpg）</value>
+  </data>
+  <data name="JacketAbOutputHint" xml:space="preserve">
+    <value>jacket/ と jacket_s/ サブフォルダーへ出力</value>
+  </data>
+  <data name="JacketAbSdezHint" xml:space="preserve">
+    <value>SDEZ モードで通常・小型のジャケット AssetBundle を生成します。</value>
+  </data>
 </root>

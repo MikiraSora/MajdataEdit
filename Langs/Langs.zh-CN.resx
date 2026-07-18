@@ -611,4 +611,19 @@
   <data name="AcbAudioSdezHint" xml:space="preserve">
     <value>以 SDEZ 模式生成 192 Kbps 加密 HCA 音频及配套 ACB/AWB。</value>
   </data>
+  <data name="GenerateJacketAb" xml:space="preserve">
+    <value>封面ab文件夹</value>
+  </data>
+  <data name="JacketAbExportTitle" xml:space="preserve">
+    <value>封面ab文件夹</value>
+  </data>
+  <data name="JacketAbSource" xml:space="preserve">
+    <value>来源（当前谱面目录的 bg.jpg）</value>
+  </data>
+  <data name="JacketAbOutputHint" xml:space="preserve">
+    <value>输出到 jacket/ 与 jacket_s/ 子目录</value>
+  </data>
+  <data name="JacketAbSdezHint" xml:space="preserve">
+    <value>以 SDEZ 模式生成大、小两种 Unity AssetBundle 封面。</value>
+  </data>
 </root>

@@ -1,0 +1,26 @@
+# JacketGenerator
+
+This directory contains the SDEZ jacket AssetBundle generation runtime used by
+MajdataEdit's jacket AB export dialog.
+
+- Reference source: `UnityAssetReplacer/JacketGenerator`
+- Source revision inspected during integration: `c370b635d2f290f33959b7994b4d916f9a9ab29a`
+- `JacketGenerator.dll` is a .NET 6 compatibility build of the required jacket
+  generation sources. It embeds the SDEZ `Resources/ui_jacket_000666` template.
+- The integration uses `GenerateGameType.SDEZ` and
+  `BuildTarget.StandaloneWindows64`.
+- Reference source license: GNU GPL version 3, matching MajdataEdit's license.
+
+## SHA-256
+
+```text
+FE2B4008E89F7D427CA3DFC00EBF27C7683BFBB712D8189716F42D37B786ECA0  AssetsTools.NET.dll
+B4258A8880F938BB3639F313653400D25BFDAB9D6FD08B5D2DBB9ACE88F5FF43  crnlib.dll
+10F317F240FE7AA9231CD1831ACCCDAA2D9F51C5D27B2CE42A1EE8A142363180  ispc_texcomp.dll
+47153A25D35A4D196D1A2B3EF909452F5256F594935C1C803190EE8C214E6D64  JacketGenerator.dll
+A4AC5E4D0D66DFFDAE43498E95AD502D042B0FC5C9D70264B9D4C88C3CC94955  Mono.Cecil.dll
+D5B19EDA90457B78BFD2E759F87E062954529902632945DD1F11C8ABCB73727A  PVRTexLib.dll
+91C9C5706BE3F7756E13BE121185F163F0FEA51E0F3C8B5A46FA7AEBAC1D26EC  SixLabors.ImageSharp.dll
+EFED367D1A73F4A692C59734D2FE2EA2B781BF79A1BD7295F031A656B3D73B3D  TexToolWrap.dll
+AC2AD32A4F789E04DE0810BC0D0D49489082CF7EC163E65D7689AC938EF22F72  TexturePlugin.dll
+```

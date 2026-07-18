@@ -601,4 +601,19 @@ Click OK to start render.</value>
   <data name="AcbAudioSdezHint" xml:space="preserve">
     <value>Generates encrypted 192 Kbps HCA audio and its ACB/AWB pair in SDEZ mode.</value>
   </data>
+  <data name="GenerateJacketAb" xml:space="preserve">
+    <value>Jacket AB folders</value>
+  </data>
+  <data name="JacketAbExportTitle" xml:space="preserve">
+    <value>Jacket AB folders</value>
+  </data>
+  <data name="JacketAbSource" xml:space="preserve">
+    <value>Source (bg.jpg in the current chart folder)</value>
+  </data>
+  <data name="JacketAbOutputHint" xml:space="preserve">
+    <value>Outputs to the jacket/ and jacket_s/ subfolders</value>
+  </data>
+  <data name="JacketAbSdezHint" xml:space="preserve">
+    <value>Generates normal and small Unity AssetBundle jackets in SDEZ mode.</value>
+  </data>
 </root>
