@@ -233,6 +233,22 @@ public partial class MainWindow : Window
         TogglePlayAndPause(PlayMethod.Record);
     }
 
+    private void Menu_ExportCoverVideo_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(maidataDir) || !Directory.Exists(maidataDir))
+        {
+            MessageBox.Show("请先打开 maidata.txt。", "从封面生成USM格式.dat文件",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var exportWindow = new CoverVideoExportWindow(maidataDir)
+        {
+            Owner = this
+        };
+        exportWindow.ShowDialog();
+    }
+
     private void Menu_GenerateMa2_Click(object sender, RoutedEventArgs e)
     {
         if (selectedDifficulty == -1 || string.IsNullOrWhiteSpace(maidataDir))

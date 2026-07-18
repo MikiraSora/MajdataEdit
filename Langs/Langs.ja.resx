@@ -577,4 +577,43 @@ Open Browser to download latest update of Majdata?</value>
   <data name="EditorContextMenuJumpToCursor" xml:space="preserve">
     <value>カーソル位置へジャンプ</value>
   </data>
+  <data name="ExportCoverAsVideo" xml:space="preserve">
+    <value>ジャケットからUSM形式の.datを生成</value>
+  </data>
+  <data name="CoverVideoExportTitle" xml:space="preserve">
+    <value>ジャケットからUSM形式の.datを生成</value>
+  </data>
+  <data name="CoverVideoSourceImage" xml:space="preserve">
+    <value>入力（現在の譜面フォルダーの bg.jpg）</value>
+  </data>
+  <data name="CoverVideoOutputDirectory" xml:space="preserve">
+    <value>出力先</value>
+  </data>
+  <data name="CoverVideoSelectOutputDirectory" xml:space="preserve">
+    <value>出力先を選択</value>
+  </data>
+  <data name="CoverVideoBaseMusicId" xml:space="preserve">
+    <value>4桁 BaseMusicId</value>
+  </data>
+  <data name="CoverVideoIsUtage" xml:space="preserve">
+    <value>IsUtage</value>
+  </data>
+  <data name="CoverVideoIsDx" xml:space="preserve">
+    <value>IsDx</value>
+  </data>
+  <data name="CoverVideoFinalMusicId" xml:space="preserve">
+    <value>FinaleMusicId</value>
+  </data>
+  <data name="CoverVideoOutputExtensionHint" xml:space="preserve">
+    <value>出力：FinaleMusicId.dat</value>
+  </data>
+  <data name="CoverVideoOneSecondHint" xml:space="preserve">
+    <value>bg.jpg を1秒の静止 H.264 USM に変換し、固定キーで暗号化します。</value>
+  </data>
+  <data name="CoverVideoConfirm" xml:space="preserve">
+    <value>出力</value>
+  </data>
+  <data name="CoverVideoCancel" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
 </root>

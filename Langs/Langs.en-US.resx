@@ -541,4 +541,43 @@ Click OK to start render.</value>
   <data name="EditorContextMenuJumpToCursor" xml:space="preserve">
     <value>Jump to cursor position</value>
   </data>
+  <data name="ExportCoverAsVideo" xml:space="preserve">
+    <value>Generate USM-format .dat from cover</value>
+  </data>
+  <data name="CoverVideoExportTitle" xml:space="preserve">
+    <value>Generate USM-format .dat from cover</value>
+  </data>
+  <data name="CoverVideoSourceImage" xml:space="preserve">
+    <value>Source (bg.jpg in the current chart folder)</value>
+  </data>
+  <data name="CoverVideoOutputDirectory" xml:space="preserve">
+    <value>Output directory</value>
+  </data>
+  <data name="CoverVideoSelectOutputDirectory" xml:space="preserve">
+    <value>Output directory</value>
+  </data>
+  <data name="CoverVideoBaseMusicId" xml:space="preserve">
+    <value>4-digit BaseMusicId</value>
+  </data>
+  <data name="CoverVideoIsUtage" xml:space="preserve">
+    <value>IsUtage</value>
+  </data>
+  <data name="CoverVideoIsDx" xml:space="preserve">
+    <value>IsDx</value>
+  </data>
+  <data name="CoverVideoFinalMusicId" xml:space="preserve">
+    <value>FinaleMusicId</value>
+  </data>
+  <data name="CoverVideoOutputExtensionHint" xml:space="preserve">
+    <value>Output: FinaleMusicId.dat</value>
+  </data>
+  <data name="CoverVideoOneSecondHint" xml:space="preserve">
+    <value>Encodes bg.jpg as a one-second static H.264 USM and encrypts it with the fixed key.</value>
+  </data>
+  <data name="CoverVideoConfirm" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="CoverVideoCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>

@@ -84,6 +84,9 @@
                 <MenuItem x:Name="MenuGenerate" Header="生成" Foreground="{DynamicResource ButtonForeground}"
                           Template="{DynamicResource DarkMenuItem}">
                     <MenuItem x:Name="Menu_GenerateMa2" Header=".ma2谱面文件" Click="Menu_GenerateMa2_Click" />
+                    <MenuItem x:Name="Menu_ExportCoverVideo"
+                              Header="{lex:Loc ExportCoverAsVideo}"
+                              Click="Menu_ExportCoverVideo_Click" />
                 </MenuItem>
             </Menu>
         </DockPanel>

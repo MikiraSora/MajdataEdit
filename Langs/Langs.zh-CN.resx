@@ -551,4 +551,43 @@
   <data name="EditorContextMenuJumpToCursor" xml:space="preserve">
     <value>跳转到光标位置</value>
   </data>
+  <data name="ExportCoverAsVideo" xml:space="preserve">
+    <value>从封面生成USM格式.dat文件</value>
+  </data>
+  <data name="CoverVideoExportTitle" xml:space="preserve">
+    <value>从封面生成USM格式.dat文件</value>
+  </data>
+  <data name="CoverVideoSourceImage" xml:space="preserve">
+    <value>来源（当前谱面目录的 bg.jpg）</value>
+  </data>
+  <data name="CoverVideoOutputDirectory" xml:space="preserve">
+    <value>导出目录</value>
+  </data>
+  <data name="CoverVideoSelectOutputDirectory" xml:space="preserve">
+    <value>导出目录</value>
+  </data>
+  <data name="CoverVideoBaseMusicId" xml:space="preserve">
+    <value>四位 BaseMusicId</value>
+  </data>
+  <data name="CoverVideoIsUtage" xml:space="preserve">
+    <value>IsUtage</value>
+  </data>
+  <data name="CoverVideoIsDx" xml:space="preserve">
+    <value>IsDx</value>
+  </data>
+  <data name="CoverVideoFinalMusicId" xml:space="preserve">
+    <value>FinaleMusicId</value>
+  </data>
+  <data name="CoverVideoOutputExtensionHint" xml:space="preserve">
+    <value>输出文件：FinaleMusicId.dat</value>
+  </data>
+  <data name="CoverVideoOneSecondHint" xml:space="preserve">
+    <value>将 bg.jpg 编码为 1 秒静态 H.264 USM，并使用固定密钥加密。</value>
+  </data>
+  <data name="CoverVideoConfirm" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="CoverVideoCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
 </root>
