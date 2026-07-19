@@ -218,6 +218,37 @@ public partial class MainWindow : Window
         }
     }
 
+    private void Menu_DownloadFromMajdataNet_Click(object sender, RoutedEventArgs e)
+    {
+        if (!isSaved)
+            if (!AskSave())
+                return;
+
+        var initialDirectory = Directory.Exists(maidataDir)
+            ? Directory.GetParent(maidataDir)?.FullName
+            : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var downloadWindow = new MajdataNetDownloadWindow(initialDirectory)
+        {
+            Owner = this
+        };
+        if (downloadWindow.ShowDialog() == true &&
+            !string.IsNullOrWhiteSpace(downloadWindow.DownloadedChartDirectory))
+        {
+            try
+            {
+                initFromFile(downloadWindow.DownloadedChartDirectory);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    GetLocalizedString("MajdataNetOpenFailed") + "\n" + exception.Message,
+                    GetLocalizedString("MajdataNetDownloadTitle"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+    }
+
     private void Menu_Save_Click(object sender, RoutedEventArgs e)
     {
         SaveFumen(true);

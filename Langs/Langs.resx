@@ -291,4 +291,55 @@
   <data name="MusicXmlGenerateJacketAb" xml:space="preserve">
     <value>Also generate jacket AB</value>
   </data>
+  <data name="MajdataNetDownloadTitle" xml:space="preserve">
+    <value>Download chart from majdata.net</value>
+  </data>
+  <data name="MajdataNetSaveDirectory" xml:space="preserve">
+    <value>Chart download folder</value>
+  </data>
+  <data name="MajdataNetSelectDirectory" xml:space="preserve">
+    <value>Select folder</value>
+  </data>
+  <data name="MajdataNetSelectDirectoryTitle" xml:space="preserve">
+    <value>Select the majdata.net chart folder</value>
+  </data>
+  <data name="MajdataNetSongUrl" xml:space="preserve">
+    <value>majdata.net song URL</value>
+  </data>
+  <data name="MajdataNetDownloadButton" xml:space="preserve">
+    <value>Download and open</value>
+  </data>
+  <data name="MajdataNetInvalidDirectory" xml:space="preserve">
+    <value>Select a valid chart folder.</value>
+  </data>
+  <data name="MajdataNetInvalidUrl" xml:space="preserve">
+    <value>Enter a valid majdata.net song URL containing song?id=chart UUID.</value>
+  </data>
+  <data name="MajdataNetOverwritePrompt" xml:space="preserve">
+    <value>The following chart resources already exist. Overwrite them?</value>
+  </data>
+  <data name="MajdataNetDownloadComplete" xml:space="preserve">
+    <value>Download complete. Saved {0} files to:&#xA;{1}</value>
+  </data>
+  <data name="MajdataNetDownloadFailed" xml:space="preserve">
+    <value>Failed to download the chart from majdata.net:</value>
+  </data>
+  <data name="MajdataNetDownloadCanceled" xml:space="preserve">
+    <value>Download canceled.</value>
+  </data>
+  <data name="MajdataNetCanceling" xml:space="preserve">
+    <value>Canceling download...</value>
+  </data>
+  <data name="MajdataNetRequestTimedOut" xml:space="preserve">
+    <value>The majdata.net request timed out. Check the network connection and try again.</value>
+  </data>
+  <data name="MajdataNetOpenFailed" xml:space="preserve">
+    <value>The chart was downloaded, but the editor could not open maidata.txt:</value>
+  </data>
+  <data name="MajdataNetUseTemporaryDirectory" xml:space="preserve">
+    <value>Save directly to a random system temporary folder</value>
+  </data>
+  <data name="MajdataNetCreateTemporaryDirectoryFailed" xml:space="preserve">
+    <value>Could not create the temporary chart folder:</value>
+  </data>
 </root>

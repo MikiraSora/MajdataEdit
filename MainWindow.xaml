@@ -41,6 +41,9 @@
                           Template="{DynamicResource DarkMenuItem}">
                     <MenuItem x:Name="Menu_New" Header="{lex:Loc New}" Click="Menu_New_Click" />
                     <MenuItem x:Name="Menu_Open" Header="{lex:Loc Open}" Click="Menu_Open_Click" />
+                    <MenuItem x:Name="Menu_DownloadFromMajdataNet"
+                              Header="{lex:Loc MajdataNetDownloadTitle}"
+                              Click="Menu_DownloadFromMajdataNet_Click" />
                     <MenuItem x:Name="Menu_Save" Header="{lex:Loc Save}" Click="Menu_Save_Click" />
                     <MenuItem x:Name="Menu_SaveAs" Header="{lex:Loc SaveAs}" Click="Menu_SaveAs_Click" IsEnabled="False"
                               Visibility="Collapsed" />

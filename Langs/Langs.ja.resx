@@ -715,4 +715,55 @@ Open Browser to download latest update of Majdata?</value>
   <data name="MusicXmlGenerateJacketAb" xml:space="preserve">
     <value>ジャケットABも生成</value>
   </data>
+  <data name="MajdataNetDownloadTitle" xml:space="preserve">
+    <value>majdata.netから譜面をダウンロード</value>
+  </data>
+  <data name="MajdataNetSaveDirectory" xml:space="preserve">
+    <value>譜面の保存フォルダー</value>
+  </data>
+  <data name="MajdataNetSelectDirectory" xml:space="preserve">
+    <value>フォルダーを選択</value>
+  </data>
+  <data name="MajdataNetSelectDirectoryTitle" xml:space="preserve">
+    <value>majdata.net 譜面の保存フォルダーを選択</value>
+  </data>
+  <data name="MajdataNetSongUrl" xml:space="preserve">
+    <value>majdata.net 楽曲URL</value>
+  </data>
+  <data name="MajdataNetDownloadButton" xml:space="preserve">
+    <value>ダウンロードして開く</value>
+  </data>
+  <data name="MajdataNetInvalidDirectory" xml:space="preserve">
+    <value>有効な譜面保存フォルダーを選択してください。</value>
+  </data>
+  <data name="MajdataNetInvalidUrl" xml:space="preserve">
+    <value>song?id=譜面UUID を含む有効な majdata.net 楽曲URLを入力してください。</value>
+  </data>
+  <data name="MajdataNetOverwritePrompt" xml:space="preserve">
+    <value>次の譜面リソースは既に存在します。上書きしますか？</value>
+  </data>
+  <data name="MajdataNetDownloadComplete" xml:space="preserve">
+    <value>ダウンロード完了。{0} ファイルを保存しました：&#xA;{1}</value>
+  </data>
+  <data name="MajdataNetDownloadFailed" xml:space="preserve">
+    <value>majdata.net からの譜面ダウンロードに失敗しました：</value>
+  </data>
+  <data name="MajdataNetDownloadCanceled" xml:space="preserve">
+    <value>ダウンロードをキャンセルしました。</value>
+  </data>
+  <data name="MajdataNetCanceling" xml:space="preserve">
+    <value>ダウンロードをキャンセルしています...</value>
+  </data>
+  <data name="MajdataNetRequestTimedOut" xml:space="preserve">
+    <value>majdata.net への接続がタイムアウトしました。ネットワークを確認して再試行してください。</value>
+  </data>
+  <data name="MajdataNetOpenFailed" xml:space="preserve">
+    <value>譜面はダウンロードされましたが、maidata.txt を開けませんでした：</value>
+  </data>
+  <data name="MajdataNetUseTemporaryDirectory" xml:space="preserve">
+    <value>システム一時フォルダー内のランダムなフォルダーへ直接保存</value>
+  </data>
+  <data name="MajdataNetCreateTemporaryDirectoryFailed" xml:space="preserve">
+    <value>一時譜面フォルダーを作成できませんでした：</value>
+  </data>
 </root>
