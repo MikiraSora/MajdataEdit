@@ -160,7 +160,7 @@
     <value>Generate USM-format .dat from cover</value>
   </data>
   <data name="CoverVideoSourceImage" xml:space="preserve">
-    <value>Source (bg.jpg in the current chart folder)</value>
+    <value>Video / cover source (pv.mp4 first, then bg.jpg)</value>
   </data>
   <data name="CoverVideoOutputDirectory" xml:space="preserve">
     <value>Output directory</value>
@@ -184,7 +184,7 @@
     <value>Output: MovieData/00{BaseMusicId}.dat</value>
   </data>
   <data name="CoverVideoOneSecondHint" xml:space="preserve">
-    <value>Encodes bg.jpg as a one-second static H.264 USM and encrypts it with the fixed key.</value>
+    <value>Uses pv.mp4 for the full USM video when available; otherwise creates a one-second static video from bg.jpg. Uses the fixed encryption key.</value>
   </data>
   <data name="CoverVideoConfirm" xml:space="preserve">
     <value>Export</value>

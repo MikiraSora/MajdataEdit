@@ -558,7 +558,7 @@
     <value>从封面生成USM格式.dat文件</value>
   </data>
   <data name="CoverVideoSourceImage" xml:space="preserve">
-    <value>来源（当前谱面目录的 bg.jpg）</value>
+    <value>视频/封面来源（优先 pv.mp4，其次 bg.jpg）</value>
   </data>
   <data name="CoverVideoOutputDirectory" xml:space="preserve">
     <value>导出目录</value>
@@ -582,7 +582,7 @@
     <value>输出文件：MovieData/00{BaseMusicId}.dat</value>
   </data>
   <data name="CoverVideoOneSecondHint" xml:space="preserve">
-    <value>将 bg.jpg 编码为 1 秒静态 H.264 USM，并使用固定密钥加密。</value>
+    <value>优先将 pv.mp4 转换为完整 USM 视频；不存在时使用 bg.jpg 生成 1 秒静态视频。使用固定密钥加密。</value>
   </data>
   <data name="CoverVideoConfirm" xml:space="preserve">
     <value>确认</value>

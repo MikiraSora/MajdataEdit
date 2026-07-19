@@ -8,15 +8,39 @@ internal static class CoverVideoExporter
 {
     public const ulong EncryptionKey = 0x7F4551499DF55E68;
 
+    private const int VideoFrameRate = 60;
+    private const int MaximumVideoWidth = 1920;
+    private const int MaximumVideoHeight = 1080;
+
+    public static string? FindSourcePath(string chartDirectory)
+    {
+        var videoPath = Path.Combine(chartDirectory, "pv.mp4");
+        if (File.Exists(videoPath))
+        {
+            return videoPath;
+        }
+
+        var imagePath = Path.Combine(chartDirectory, "bg.jpg");
+        return File.Exists(imagePath) ? imagePath : null;
+    }
+
+    public static string ResolveSourcePath(string chartDirectory)
+    {
+        return FindSourcePath(chartDirectory)
+               ?? throw new FileNotFoundException(
+                   "当前谱面目录中既没有 pv.mp4，也没有 bg.jpg。",
+                   chartDirectory);
+    }
+
     public static async Task ExportAsync(
-        string sourceImagePath,
+        string sourceMediaPath,
         string outputPath,
         IProgress<string>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(sourceImagePath))
+        if (!File.Exists(sourceMediaPath))
         {
-            throw new FileNotFoundException("当前谱面目录中没有 bg.jpg。", sourceImagePath);
+            throw new FileNotFoundException("USM 视频或封面来源不存在。", sourceMediaPath);
         }
 
         var outputDirectory = Path.GetDirectoryName(outputPath);
@@ -25,8 +49,11 @@ internal static class CoverVideoExporter
             throw new DirectoryNotFoundException("导出目录不存在。请选择有效的导出目录。");
         }
 
+        var isVideoSource = string.Equals(
+            Path.GetExtension(sourceMediaPath),
+            ".mp4",
+            StringComparison.OrdinalIgnoreCase);
         var ffmpegPath = FindFfmpegPath();
-        var (width, height) = ReadEvenImageDimensions(sourceImagePath);
         var temporaryDirectory = Path.Combine(
             Path.GetTempPath(),
             "MajdataEdit",
@@ -35,33 +62,67 @@ internal static class CoverVideoExporter
         Directory.CreateDirectory(temporaryDirectory);
 
         var h264Path = Path.Combine(temporaryDirectory, "cover.h264");
+        var previewFramePath = Path.Combine(temporaryDirectory, "preview.png");
         var temporaryOutputPath = Path.Combine(
             outputDirectory,
             $".{Path.GetFileName(outputPath)}.{Guid.NewGuid():N}.tmp");
         try
         {
-            progress?.Report("正在编码静态封面……");
-            await EncodeSingleFrameAsync(
-                ffmpegPath,
-                sourceImagePath,
-                h264Path,
-                width,
-                height,
-                cancellationToken);
-
-            cancellationToken.ThrowIfCancellationRequested();
-            progress?.Report("正在封装并加密 USM……");
-            var h264Frame = await File.ReadAllBytesAsync(h264Path, cancellationToken);
-            var usm = await Task.Run(
-                () => CriUsmWriter.CreateSingleFrame(h264Frame, width, height, EncryptionKey),
-                cancellationToken);
-            if (usm.Length < 4 || usm[0] != (byte)'C' || usm[1] != (byte)'R' ||
-                usm[2] != (byte)'I' || usm[3] != (byte)'D')
+            int width;
+            int height;
+            int frameRate;
+            if (isVideoSource)
             {
-                throw new InvalidDataException("生成的文件不是有效的 CRID/USM 容器。");
+                progress?.Report("正在读取 pv.mp4 视频信息……");
+                await ExtractFirstVideoFrameAsync(
+                    ffmpegPath,
+                    sourceMediaPath,
+                    previewFramePath,
+                    cancellationToken);
+                (width, height) = FitVideoDimensions(ReadEvenImageDimensions(previewFramePath));
+                frameRate = VideoFrameRate;
+
+                progress?.Report("正在将 pv.mp4 编码为 H.264……");
+                await EncodeVideoAsync(
+                    ffmpegPath,
+                    sourceMediaPath,
+                    h264Path,
+                    width,
+                    height,
+                    frameRate,
+                    cancellationToken);
+            }
+            else
+            {
+                (width, height) = ReadEvenImageDimensions(sourceMediaPath);
+                frameRate = 1;
+
+                progress?.Report("正在编码 1 秒静态封面……");
+                await EncodeSingleFrameAsync(
+                    ffmpegPath,
+                    sourceMediaPath,
+                    h264Path,
+                    width,
+                    height,
+                    cancellationToken);
             }
 
-            await File.WriteAllBytesAsync(temporaryOutputPath, usm, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            var frames = H264AnnexBParser.Parse(h264Path);
+            progress?.Report($"正在封装并加密 USM（{frames.Count} 帧）……");
+            await Task.Run(
+                () => CriUsmWriter.WriteVideo(
+                    h264Path,
+                    temporaryOutputPath,
+                    frames,
+                    width,
+                    height,
+                    frameRate,
+                    EncryptionKey,
+                    cancellationToken),
+                cancellationToken);
+
+            ValidateUsmFile(temporaryOutputPath);
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryOutputPath, outputPath, true);
             progress?.Report("生成完成。");
@@ -73,12 +134,103 @@ internal static class CoverVideoExporter
         }
     }
 
+    private static async Task ExtractFirstVideoFrameAsync(
+        string ffmpegPath,
+        string sourceVideoPath,
+        string previewFramePath,
+        CancellationToken cancellationToken)
+    {
+        await RunFfmpegAsync(
+            ffmpegPath,
+            new[]
+            {
+                "-hide_banner",
+                "-loglevel", "error",
+                "-y",
+                "-i", sourceVideoPath,
+                "-frames:v", "1",
+                "-an",
+                previewFramePath
+            },
+            previewFramePath,
+            "FFmpeg 无法读取 pv.mp4 的视频画面。",
+            cancellationToken);
+    }
+
+    private static async Task EncodeVideoAsync(
+        string ffmpegPath,
+        string sourceVideoPath,
+        string h264Path,
+        int width,
+        int height,
+        int frameRate,
+        CancellationToken cancellationToken)
+    {
+        await RunFfmpegAsync(
+            ffmpegPath,
+            new[]
+            {
+                "-hide_banner",
+                "-loglevel", "error",
+                "-y",
+                "-i", sourceVideoPath,
+                "-an",
+                "-vf", $"fps={frameRate},scale={width}:{height}:flags=lanczos,setsar=1",
+                "-c:v", "libx264",
+                "-preset", "medium",
+                "-profile:v", "high",
+                "-level:v", "4.1",
+                "-pix_fmt", "yuv420p",
+                "-r", frameRate.ToString(),
+                "-x264-params", $"aud=1:repeat-headers=1:keyint={frameRate * 2}:min-keyint={frameRate * 2}:scenecut=0",
+                "-f", "h264",
+                h264Path
+            },
+            h264Path,
+            "FFmpeg 无法将 pv.mp4 编码为 H.264。",
+            cancellationToken);
+    }
+
     private static async Task EncodeSingleFrameAsync(
         string ffmpegPath,
         string sourceImagePath,
         string h264Path,
         int width,
         int height,
+        CancellationToken cancellationToken)
+    {
+        await RunFfmpegAsync(
+            ffmpegPath,
+            new[]
+            {
+                "-hide_banner",
+                "-loglevel", "error",
+                "-y",
+                "-i", sourceImagePath,
+                "-frames:v", "1",
+                "-an",
+                "-vf", $"scale={width}:{height}:flags=lanczos,setsar=1",
+                "-c:v", "libx264",
+                "-preset", "medium",
+                "-tune", "stillimage",
+                "-profile:v", "high",
+                "-level:v", "4.1",
+                "-pix_fmt", "yuv420p",
+                "-r", "1",
+                "-x264-params", "aud=1:repeat-headers=1:keyint=1:min-keyint=1:scenecut=0",
+                "-f", "h264",
+                h264Path
+            },
+            h264Path,
+            "FFmpeg 无法将 bg.jpg 编码为 H.264。",
+            cancellationToken);
+    }
+
+    private static async Task RunFfmpegAsync(
+        string ffmpegPath,
+        IReadOnlyList<string> arguments,
+        string expectedOutputPath,
+        string errorMessage,
         CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo(ffmpegPath)
@@ -89,48 +241,33 @@ internal static class CoverVideoExporter
             RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(ffmpegPath) ?? AppContext.BaseDirectory
         };
-
-        AddArguments(
-            startInfo,
-            "-hide_banner",
-            "-loglevel", "error",
-            "-y",
-            "-i", sourceImagePath,
-            "-frames:v", "1",
-            "-an",
-            "-vf", $"scale={width}:{height}:flags=lanczos,setsar=1",
-            "-c:v", "libx264",
-            "-preset", "medium",
-            "-tune", "stillimage",
-            "-profile:v", "high",
-            "-level:v", "4.1",
-            "-pix_fmt", "yuv420p",
-            "-r", "1",
-            "-x264-params", "keyint=1:min-keyint=1:scenecut=0",
-            "-f", "h264",
-            h264Path);
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
 
         using var process = Process.Start(startInfo)
                             ?? throw new InvalidOperationException("无法启动 FFmpeg。");
         var standardOutputTask = process.StandardOutput.ReadToEndAsync();
         var standardErrorTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync(cancellationToken);
+        try
+        {
+            await process.WaitForExitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKillProcess(process);
+            throw;
+        }
+
         var standardOutput = await standardOutputTask;
         var standardError = await standardErrorTask;
-        if (process.ExitCode != 0 || !File.Exists(h264Path))
+        if (process.ExitCode != 0 || !File.Exists(expectedOutputPath) || new FileInfo(expectedOutputPath).Length == 0)
         {
             var details = string.IsNullOrWhiteSpace(standardError) ? standardOutput : standardError;
             throw new InvalidOperationException(
-                "FFmpeg 无法将 bg.jpg 编码为 H.264。" +
+                errorMessage +
                 (string.IsNullOrWhiteSpace(details) ? string.Empty : "\n" + details.Trim()));
-        }
-    }
-
-    private static void AddArguments(ProcessStartInfo startInfo, params string[] arguments)
-    {
-        foreach (var argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
         }
     }
 
@@ -142,10 +279,34 @@ internal static class CoverVideoExporter
             BitmapCreateOptions.PreservePixelFormat,
             BitmapCacheOption.OnLoad);
         var frame = decoder.Frames.FirstOrDefault()
-                    ?? throw new InvalidDataException("bg.jpg 不包含可读取的图像帧。");
+                    ?? throw new InvalidDataException("媒体来源不包含可读取的图像帧。");
         var width = Math.Max(2, frame.PixelWidth - frame.PixelWidth % 2);
         var height = Math.Max(2, frame.PixelHeight - frame.PixelHeight % 2);
         return (width, height);
+    }
+
+    private static (int Width, int Height) FitVideoDimensions((int Width, int Height) source)
+    {
+        var scale = Math.Min(
+            1d,
+            Math.Min(
+                MaximumVideoWidth / (double)source.Width,
+                MaximumVideoHeight / (double)source.Height));
+        var width = Math.Max(2, (int)Math.Floor(source.Width * scale));
+        var height = Math.Max(2, (int)Math.Floor(source.Height * scale));
+        return (width - width % 2, height - height % 2);
+    }
+
+    private static void ValidateUsmFile(string path)
+    {
+        Span<byte> signature = stackalloc byte[4];
+        using var stream = File.OpenRead(path);
+        if (stream.Read(signature) != signature.Length ||
+            signature[0] != (byte)'C' || signature[1] != (byte)'R' ||
+            signature[2] != (byte)'I' || signature[3] != (byte)'D')
+        {
+            throw new InvalidDataException("生成的文件不是有效的 CRID/USM 容器。");
+        }
     }
 
     private static string FindFfmpegPath()
@@ -169,6 +330,21 @@ internal static class CoverVideoExporter
                    "找不到 FFmpeg。请确认 MajdataView_Data\\StreamingAssets\\ffmpeg.exe 随编辑器一起发布。");
     }
 
+    private static void TryKillProcess(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(true);
+            }
+        }
+        catch
+        {
+            // Cancellation should preserve the original cancellation exception.
+        }
+    }
+
     private static void TryDeleteDirectory(string directory)
     {
         try
@@ -180,7 +356,7 @@ internal static class CoverVideoExporter
         }
         catch
         {
-            // 临时目录清理失败不应覆盖真正的导出结果或错误。
+            // Temporary cleanup failures should not hide the real export result or error.
         }
     }
 
@@ -195,7 +371,7 @@ internal static class CoverVideoExporter
         }
         catch
         {
-            // 临时文件清理失败不应覆盖真正的导出结果或错误。
+            // Temporary cleanup failures should not hide the real export result or error.
         }
     }
 }

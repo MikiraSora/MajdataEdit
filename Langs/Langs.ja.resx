@@ -584,7 +584,7 @@ Open Browser to download latest update of Majdata?</value>
     <value>ジャケットからUSM形式の.datを生成</value>
   </data>
   <data name="CoverVideoSourceImage" xml:space="preserve">
-    <value>入力（現在の譜面フォルダーの bg.jpg）</value>
+    <value>動画／ジャケット元（pv.mp4、次に bg.jpg）</value>
   </data>
   <data name="CoverVideoOutputDirectory" xml:space="preserve">
     <value>出力先</value>
@@ -608,7 +608,7 @@ Open Browser to download latest update of Majdata?</value>
     <value>出力：MovieData/00{BaseMusicId}.dat</value>
   </data>
   <data name="CoverVideoOneSecondHint" xml:space="preserve">
-    <value>bg.jpg を1秒の静止 H.264 USM に変換し、固定キーで暗号化します。</value>
+    <value>pv.mp4 があれば完全な USM 動画へ変換し、なければ bg.jpg から1秒の静止動画を生成します。固定キーで暗号化します。</value>
   </data>
   <data name="CoverVideoConfirm" xml:space="preserve">
     <value>出力</value>

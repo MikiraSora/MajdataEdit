@@ -63,7 +63,10 @@ internal static class MusicXmlResourceExporter
         var musicId = ExportMusicId.BuildFinalMusicId(baseMusicId, isUtage: false, isDx: false);
         var sourceImagePath = Path.Combine(chartDirectory, "bg.jpg");
         var sourceAudioPath = Path.Combine(chartDirectory, "track.mp3");
-        if ((generateCoverVideo || generateJacketAb) && !File.Exists(sourceImagePath))
+        var sourceVideoPath = generateCoverVideo
+            ? CoverVideoExporter.ResolveSourcePath(chartDirectory)
+            : null;
+        if (generateJacketAb && !File.Exists(sourceImagePath))
         {
             throw new FileNotFoundException("当前谱面目录中没有 bg.jpg。", sourceImagePath);
         }
@@ -79,7 +82,7 @@ internal static class MusicXmlResourceExporter
             Directory.CreateDirectory(movieDataDirectory);
             progress?.Report("正在生成封面 USM 视频……");
             await CoverVideoExporter.ExportAsync(
-                sourceImagePath,
+                sourceVideoPath!,
                 Path.Combine(movieDataDirectory, musicId + ".dat"),
                 progress,
                 cancellationToken);

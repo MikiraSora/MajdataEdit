@@ -7,7 +7,7 @@ namespace MajdataEdit.CoverVideoExport;
 /// <summary>
 /// Writes the small, video-only Sofdec2 container needed by the cover exporter.
 /// The layout and packet encryption follow https://github.com/RERASER/WannaCriCS,
-/// while this writer intentionally supports only one H.264 key frame.
+/// while this writer only includes the H.264 video path required by MajdataEdit.
 /// </summary>
 internal static class CriUsmWriter
 {
@@ -26,32 +26,84 @@ internal static class CriUsmWriter
 
     private const int UsmVersion = 16_777_984;
 
-    public static byte[] CreateSingleFrame(byte[] h264Frame, int width, int height, ulong key)
+    public static void WriteVideo(
+        string h264Path,
+        string outputPath,
+        IReadOnlyList<H264FrameInfo> sourceFrames,
+        int width,
+        int height,
+        int frameRate,
+        ulong key,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(h264Frame);
-        if (h264Frame.Length == 0)
+        if (!File.Exists(h264Path))
         {
-            throw new ArgumentException("H.264 数据为空。", nameof(h264Frame));
+            throw new FileNotFoundException("H.264 视频流不存在。", h264Path);
         }
 
-        if (width <= 0 || height <= 0)
+        if (sourceFrames.Count == 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(width), "视频尺寸必须大于 0。");
+            throw new ArgumentException("H.264 视频流中没有可封装的帧。", nameof(sourceFrames));
         }
 
-        var encryptedFrame = EncryptVideoPacket(h264Frame, GenerateVideoKey(key));
-        var streamPadding = PaddingToMultiple(encryptedFrame.Length, 0x20);
-        var streamChunk = PackChunk("@SFV", StreamPayload, encryptedFrame, streamPadding, frameRate: 100);
+        if (width <= 0 || height <= 0 || frameRate <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width), "视频尺寸和帧率必须大于 0。");
+        }
+
+        var frames = sourceFrames.ToArray();
+        if (!frames.Any(frame => frame.IsKeyFrame))
+        {
+            frames[0] = frames[0] with { IsKeyFrame = true };
+        }
+
+        var h264Length = new FileInfo(h264Path).Length;
+        foreach (var frame in frames)
+        {
+            if (frame.Offset < 0 || frame.Length <= 0 || frame.Offset + frame.Length > h264Length)
+            {
+                throw new InvalidDataException("H.264 帧索引超出了视频流范围。");
+            }
+        }
+
+        var streamOffset = 0L;
+        var maximumPacketSize = 1;
+        var maximumFrameSize = 0;
+        var maximumPackedSize = 0;
+        var keyFrames = new List<(int Index, long Offset)>();
+        for (var index = 0; index < frames.Length; index++)
+        {
+            var frame = frames[index];
+            if (frame.IsKeyFrame)
+            {
+                keyFrames.Add((index, streamOffset));
+            }
+
+            var padding = PaddingToMultiple(frame.Length, 0x20);
+            var packedSize = 0x20 + frame.Length + padding;
+            maximumPacketSize = Math.Max(maximumPacketSize, packedSize);
+            maximumFrameSize = Math.Max(maximumFrameSize, frame.Length);
+            maximumPackedSize = Math.Max(maximumPackedSize, 0x18 + frame.Length + padding);
+            streamOffset += packedSize;
+        }
+
+        var packedFrameRate = checked((uint)(frameRate * 100));
         var contentsEndChunk = PackChunk(
             "@SFV",
             SectionEndPayload,
             Encoding.UTF8.GetBytes("#CONTENTS END   ===============\0"),
             0,
-            frameRate: 100);
-        var streamSection = Concat(streamChunk, contentsEndChunk);
-        var maxPacketSize = Math.Max(streamChunk.Length, contentsEndChunk.Length);
+            frameRate: packedFrameRate);
+        maximumPacketSize = Math.Max(maximumPacketSize, contentsEndChunk.Length);
+        var streamSectionLength = checked(streamOffset + contentsEndChunk.Length);
 
-        var videoHeaderPage = CreateVideoHeaderPage(width, height, h264Frame.Length, streamPadding);
+        var videoHeaderPage = CreateVideoHeaderPage(
+            width,
+            height,
+            frames.Length,
+            frameRate,
+            keyFrames.Count,
+            maximumPackedSize);
         var videoHeaderPayload = PackPages(new[] { videoHeaderPage });
         var videoHeaderChunk = PackChunk("@SFV", HeaderPayload, videoHeaderPayload, 0x18);
         var headerEndChunk = PackChunk(
@@ -60,27 +112,38 @@ internal static class CriUsmWriter
             Encoding.UTF8.GetBytes("#HEADER END     ===============\0"),
             0);
 
-        var seekPage = new CriPage("VIDEO_SEEKINFO")
-            .Add("ofs_byte", LongLongType, 0L)
-            .Add("ofs_frmid", UIntType, 0U)
-            .Add("num_skip", UShortType, (ushort)0)
-            .Add("resv", UShortType, (ushort)0);
-        var initialSeekPayload = PackPages(new[] { seekPage });
-        var initialSeekPadding = MetadataPadding(0x20 + initialSeekPayload.Length);
-        var initialSeekChunkLength = 0x20 + initialSeekPayload.Length + initialSeekPadding;
+        var seekPages = keyFrames.Select(keyFrame =>
+                new CriPage("VIDEO_SEEKINFO")
+                    .Add("ofs_byte", LongLongType, keyFrame.Offset)
+                    .Add("ofs_frmid", UIntType, checked((uint)keyFrame.Index))
+                    .Add("num_skip", UShortType, (ushort)0)
+                    .Add("resv", UShortType, (ushort)0))
+            .ToArray();
+        var provisionalSeekPayload = PackPages(seekPages);
+        var provisionalSeekChunk = PackChunk(
+            "@SFV",
+            MetadataPayload,
+            provisionalSeekPayload,
+            MetadataPadding(0x20 + provisionalSeekPayload.Length));
         var metadataEndChunk = PackChunk(
             "@SFV",
             SectionEndPayload,
             Encoding.UTF8.GetBytes("#METADATA END   ===============\0"),
             0);
+        var headerMetadataLength = videoHeaderChunk.Length
+                                   + headerEndChunk.Length
+                                   + provisionalSeekChunk.Length
+                                   + metadataEndChunk.Length;
+        var absoluteStreamOffset = 0x800L + headerMetadataLength;
+        for (var index = 0; index < seekPages.Length; index++)
+        {
+            seekPages[index].Set(
+                "ofs_byte",
+                LongLongType,
+                checked(keyFrames[index].Offset + absoluteStreamOffset));
+        }
 
-        var streamOffset = 0x800L
-                           + videoHeaderChunk.Length
-                           + headerEndChunk.Length
-                           + initialSeekChunkLength
-                           + metadataEndChunk.Length;
-        seekPage.Set("ofs_byte", LongLongType, streamOffset);
-        var seekPayload = PackPages(new[] { seekPage });
+        var seekPayload = PackPages(seekPages);
         var seekChunk = PackChunk(
             "@SFV",
             MetadataPayload,
@@ -88,20 +151,21 @@ internal static class CriUsmWriter
             MetadataPadding(0x20 + seekPayload.Length));
         var headerMetadataSection = Concat(videoHeaderChunk, headerEndChunk, seekChunk, metadataEndChunk);
 
+        var rawVideoSize = checked((int)frames.Sum(frame => (long)frame.Length));
         var videoCridPage = new CriPage("CRIUSF_DIR_STREAM")
             .Add("fmtver", IntType, 0)
-            .Add("filename", StringType, "cover.h264")
-            .Add("filesize", IntType, h264Frame.Length)
+            .Add("filename", StringType, Path.GetFileName(h264Path))
+            .Add("filesize", IntType, rawVideoSize)
             .Add("datasize", IntType, 0)
             .Add("stmid", IntType, 0x40534656)
             .Add("chno", ShortType, (short)0)
             .Add("minchk", ShortType, (short)3)
-            .Add("minbuf", IntType, h264Frame.Length)
+            .Add("minbuf", IntType, maximumFrameSize)
             .Add("avbps", IntType, 0);
 
-        var roundedMinimumBuffer = (int)Math.Round(maxPacketSize * 1.98746);
+        var roundedMinimumBuffer = (int)Math.Round(maximumPacketSize * 1.98746);
         roundedMinimumBuffer += PaddingToMultiple(roundedMinimumBuffer, 0x10);
-        var declaredFileSize = 0x1000 + headerMetadataSection.Length + streamSection.Length;
+        var declaredFileSize = checked((int)(0x1000L + headerMetadataSection.Length + streamSectionLength));
         var usmCridPage = new CriPage("CRIUSF_DIR_STREAM")
             .Add("fmtver", IntType, UsmVersion)
             .Add("filename", StringType, "cover.usm")
@@ -120,10 +184,39 @@ internal static class CriUsmWriter
             infoPayload,
             PaddingToMultiple(0x20 + infoPayload.Length, 0x800));
 
-        return Concat(infoChunk, headerMetadataSection, streamSection);
+        var videoKey = GenerateVideoKey(key);
+        using var input = new FileStream(h264Path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var output = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        output.Write(infoChunk);
+        output.Write(headerMetadataSection);
+        for (var index = 0; index < frames.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var frame = frames[index];
+            input.Position = frame.Offset;
+            var frameData = ReadExactly(input, frame.Length);
+            var encryptedFrame = EncryptVideoPacket(frameData, videoKey);
+            var streamChunk = PackChunk(
+                "@SFV",
+                StreamPayload,
+                encryptedFrame,
+                PaddingToMultiple(encryptedFrame.Length, 0x20),
+                frameTime: checked((uint)(index * 99.9)),
+                frameRate: packedFrameRate);
+            output.Write(streamChunk);
+        }
+
+        output.Write(contentsEndChunk);
+        output.Flush();
     }
 
-    private static CriPage CreateVideoHeaderPage(int width, int height, int frameSize, int framePadding)
+    private static CriPage CreateVideoHeaderPage(
+        int width,
+        int height,
+        int totalFrames,
+        int frameRate,
+        int keyFrameCount,
+        int maximumPackedSize)
     {
         return new CriPage("VIDEO_HDRINFO")
             .Add("width", IntType, width)
@@ -136,12 +229,12 @@ internal static class CriUsmWriter
             .Add("mpeg_dcprec", CharType, (sbyte)11)
             .Add("mpeg_codec", CharType, (sbyte)5)
             .Add("alpha_type", IntType, 0)
-            .Add("total_frames", IntType, 1)
-            .Add("framerate_n", IntType, 1000)
+            .Add("total_frames", IntType, totalFrames)
+            .Add("framerate_n", IntType, checked(frameRate * 1000))
             .Add("framerate_d", IntType, 1000)
             .Add("metadata_count", IntType, 1)
-            .Add("metadata_size", IntType, 1)
-            .Add("ixsize", IntType, 0x18 + frameSize + framePadding)
+            .Add("metadata_size", IntType, keyFrameCount)
+            .Add("ixsize", IntType, maximumPackedSize)
             .Add("pre_padding", IntType, 0)
             .Add("max_picture_size", IntType, 0)
             .Add("color_space", IntType, 0)
@@ -405,6 +498,24 @@ internal static class CriUsmWriter
         }
 
         return result;
+    }
+
+    private static byte[] ReadExactly(Stream stream, int length)
+    {
+        var buffer = new byte[length];
+        var offset = 0;
+        while (offset < buffer.Length)
+        {
+            var read = stream.Read(buffer, offset, buffer.Length - offset);
+            if (read == 0)
+            {
+                throw new EndOfStreamException("H.264 视频帧数据不完整。");
+            }
+
+            offset += read;
+        }
+
+        return buffer;
     }
 
     private static void AddNullTerminatedString(List<byte> target, string value, Encoding encoding)

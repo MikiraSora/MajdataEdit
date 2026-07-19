@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using MajdataEdit.CoverVideoExport;
 using MajdataEdit.Export;
 using MajdataEdit.Ma2Export;
 using MajdataEdit.MusicXmlExport;
@@ -322,10 +323,15 @@ public partial class MusicXmlExportWindow : Window
         var generateCoverVideo = GenerateCoverVideoCheckBox.IsChecked == true;
         var generateAcbAwb = GenerateAcbAwbCheckBox.IsChecked == true;
         var generateJacketAb = GenerateJacketAbCheckBox.IsChecked == true;
-        if ((generateCoverVideo || generateJacketAb) &&
-            !File.Exists(Path.Combine(_chartDirectory, "bg.jpg")))
+        if (generateCoverVideo && CoverVideoExporter.FindSourcePath(_chartDirectory) == null)
         {
-            ShowInputWarning("已勾选封面或视频生成，但当前谱面目录中没有 bg.jpg。", OutputDirectoryTextBox);
+            ShowInputWarning("已勾选视频生成，但当前谱面目录中既没有 pv.mp4，也没有 bg.jpg。", OutputDirectoryTextBox);
+            return false;
+        }
+
+        if (generateJacketAb && !File.Exists(Path.Combine(_chartDirectory, "bg.jpg")))
+        {
+            ShowInputWarning("已勾选封面 AB 生成，但当前谱面目录中没有 bg.jpg。", OutputDirectoryTextBox);
             return false;
         }
 

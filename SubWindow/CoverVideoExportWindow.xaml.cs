@@ -18,7 +18,8 @@ public partial class CoverVideoExportWindow : Window
     {
         _chartDirectory = chartDirectory;
         InitializeComponent();
-        SourceImageTextBox.Text = Path.Combine(chartDirectory, "bg.jpg");
+        SourceImageTextBox.Text = CoverVideoExporter.FindSourcePath(chartDirectory)
+                                  ?? Path.Combine(chartDirectory, "pv.mp4");
         DataObject.AddPastingHandler(BaseMusicIdTextBox, BaseMusicIdTextBox_OnPaste);
         LoadExportSettings();
         UpdateFinalMusicIdPreview();
@@ -105,10 +106,15 @@ public partial class CoverVideoExportWindow : Window
             return;
         }
 
-        var sourceImagePath = SourceImageTextBox.Text;
-        if (!File.Exists(sourceImagePath))
+        string sourceMediaPath;
+        try
         {
-            MessageBox.Show("当前谱面目录中没有 bg.jpg：\n" + sourceImagePath, Title,
+            sourceMediaPath = CoverVideoExporter.ResolveSourcePath(_chartDirectory);
+            SourceImageTextBox.Text = sourceMediaPath;
+        }
+        catch (FileNotFoundException exception)
+        {
+            MessageBox.Show(exception.Message, Title,
                 MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -130,7 +136,7 @@ public partial class CoverVideoExportWindow : Window
         {
             Directory.CreateDirectory(movieDataDirectory);
             var progress = new Progress<string>(message => StatusTextBlock.Text = message);
-            await CoverVideoExporter.ExportAsync(sourceImagePath, outputPath, progress);
+            await CoverVideoExporter.ExportAsync(sourceMediaPath, outputPath, progress);
             MessageBox.Show("USM 格式 .dat 文件生成完成：\n" + outputPath, Title,
                 MessageBoxButton.OK, MessageBoxImage.Information);
             SetExportingState(false);
