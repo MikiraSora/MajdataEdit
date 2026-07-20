@@ -65,7 +65,8 @@ namespace MajdataEdit.SyntaxModule
                 ErrorList.Clear();
                 int line = 1;
                 int column = 1;
-                if (!TryRemoveHSpeedMarkupForSyntaxCheck(str, out str))
+                if (!HSpeedSemanticSyntaxCheck(str) ||
+                    !TryRemoveHSpeedMarkupForSyntaxCheck(str, out str))
                 {
                     addError("HS/SV", -1, -1);
                     return;
@@ -136,6 +137,38 @@ namespace MajdataEdit.SyntaxModule
         /// <summary>
         /// 检查BPM与拍号的合法性
         /// </summary>
+        static bool HSpeedSemanticSyntaxCheck(string simaiStr)
+        {
+            var hasSpeedTag = false;
+            for (var i = 0; i < simaiStr.Length; i++)
+            {
+                if (simaiStr[i] == '<' && IsSpeedTagAt(simaiStr, i))
+                {
+                    hasSpeedTag = true;
+                    break;
+                }
+            }
+
+            if (!hasSpeedTag)
+                return true;
+
+            try
+            {
+                _ = SimaiParser.ParseChart(simaiStr.AsSpan(), 0, out _);
+                return true;
+            }
+            catch (InvalidSimaiMarkupException)
+            {
+                return false;
+            }
+            catch (Exception)
+            {
+                // Syntax checking must report an incomplete chart instead of
+                // letting parser implementation errors escape the background task.
+                return false;
+            }
+        }
+
         static bool TryRemoveHSpeedMarkupForSyntaxCheck(string simaiStr, out string cleaned)
         {
             var sb = new System.Text.StringBuilder(simaiStr.Length);

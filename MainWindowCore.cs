@@ -875,6 +875,9 @@ public partial class MainWindow : Window
                     var hSpeedGroupColor = useHSpeedGroupColor
                         ? GetObjectHSpeedGroupColor(noteD.SoflanGroup)
                         : Color.Empty;
+                    var slideHSpeedGroupColor = useHSpeedGroupColor
+                        ? GetObjectHSpeedGroupColor(noteD.SlideSoflanGroup)
+                        : Color.Empty;
                     var y = noteD.StartPosition * 6.875f + 8f; //与键位有关
 
                     if (noteD.IsHanabi)
@@ -996,7 +999,7 @@ public partial class MainWindow : Window
                         }
 
                         pen.Color = useHSpeedGroupColor
-                            ? hSpeedGroupColor
+                            ? slideHSpeedGroupColor
                             : GetSlideColor(noteD);
                         pen.DashStyle = DashStyle.Dot;
                         var xSlide = (float)(noteD.SlideStartTime / step - startindex) * linewidth;

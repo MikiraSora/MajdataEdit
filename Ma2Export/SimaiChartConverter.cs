@@ -120,11 +120,13 @@ public sealed class SimaiChartConverter
         int MapSoflanGroup(int soflanGroup) => soflanGroup < 0 && soflanGroupMap.TryGetValue(soflanGroup, out var mappedGroup)
             ? mappedGroup
             : soflanGroup;
+        var lastSoflanTotalGrid = 0L;
 
         foreach (var timingPoint in allTimingPoints)
         {
             var curTime = timingPoint.Timing;
             var currentTotalGrid = CalculateGrid(curTime);
+            lastSoflanTotalGrid = Math.Max(lastSoflanTotalGrid, currentTotalGrid);
             FormatGrid(currentTotalGrid, out var curUnit, out var curGrid);
 
             var hasNotes = timingPoint.Notes.Length != 0;
@@ -276,15 +278,15 @@ public sealed class SimaiChartConverter
                 {
                     FormatGrid(grid, out var slideUnit, out var slideGrid);
                     notesOutput.Append($"{slideId}\t{slideUnit}\t{slideGrid}\t{startPos}\t{waitGrid}\t{durationGrid}\t{endPos}");
-                    AppendNoteTail(notesOutput, note.IsMineSlide);
+                    AppendNoteTail(notesOutput, note.IsMineSlide, MapSoflanGroup(note.SlideSoflanGroup));
                     notesOutput.AppendLine();
+                    lastSoflanTotalGrid = Math.Max(lastSoflanTotalGrid, grid + waitGrid + durationGrid);
                 }
             }
         }
 
         //generate Soflan
         compositeOutput.AppendLine();
-        var lastNoteTotalGrid = CalculateGrid(timingPoints.Max(x => x.Timing));
         foreach (var pair1 in hSpeedListMap)
         {
             var soflanGroup = pair1.Key;
@@ -311,7 +313,7 @@ public sealed class SimaiChartConverter
                 var speed = lastSpeedPoint.Value;
                 FormatGrid(totalGrid, out var unit, out var grid);
 
-                var duration = lastNoteTotalGrid + 1 - lastSpeedPoint.Key;
+                var duration = lastSoflanTotalGrid + 1 - lastSpeedPoint.Key;
 
                 compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{outputSoflanGroup}");
             }
@@ -447,6 +449,10 @@ public sealed class SimaiChartConverter
             foreach (var note in timingPoint.Notes)
             {
                 TrackGroup(note.SoflanGroup, timingPoint.Timing);
+                if (note.Type == SimaiNoteType.Slide)
+                {
+                    TrackGroup(note.SlideSoflanGroup, timingPoint.Timing);
+                }
             }
         }
 
