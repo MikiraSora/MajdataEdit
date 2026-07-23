@@ -1,6 +1,6 @@
 # simai `y` Yellow 物件修饰符设计
 
-状态：规格、实现与验证已完成。本文保留 `grill-me` 访谈决策链；“最终决策”与“已确认”条目构成本阶段实现合同，被取代的早期建议仅用于解释取舍。
+状态：规格、MajSimaiX/MajdataEdit 实现、MajdataView 运行时接入与验证已完成。本文保留 `grill-me` 访谈决策链；“最终决策”与“已确认”条目构成本阶段实现合同，被取代的早期建议仅用于解释取舍。
 
 ## 目标
 
@@ -31,7 +31,7 @@
 - 非法位置、重复 `y`、大写 `Y`、`b/y` 和 `m/y` 冲突均抛出 `InvalidSimaiSyntaxException`；MajdataEdit 的独立 `SyntaxCheck` 复用同一组件解析规则。
 - managed `SimaiNote` 已公开两个 Force Yellow 属性；旧 JSON 缺少字段时得到 `false` 和空数组。
 - 旧 `MajSimai_Parse` native ABI 未增加字段，x64 `UnmanagedSimaiNote` 仍为 64 字节且既有偏移保持不变。
-- MajdataView/外部运行时未在本阶段接入；仅 MajdataEdit 自身时间轴已消费新属性。
+- MajdataView 已消费 managed JSON 中的两个 Force Yellow 属性；自然 EACH 的逻辑状态与显式 Yellow 外观状态保持分离。
 
 ### 语法检查
 
@@ -45,6 +45,13 @@
 - `MainWindowCore.DrawWave` 现在把 `EachAnalysis.Contains(note)` 与 `note.IsForceYellow` 合并为 `isEach`，然后把 Tap、Hold、Touch、TouchHold 头部和 Slide 星头绘制为 `Color.Gold`。
 - 新属性在渲染入口合并为 `isEachAppearance = naturalEach || note.IsForceYellow`；`IsForceYellow` 未传入 `EachNoteAnalysis`，不会改变分组结果。
 - Slide 轨迹按 `RawContent` 拆段并读取逐段索引，Force Yellow 使用 `Color.Gold`；HSpeed group 诊断色仍按自然 EACH 的既有优先级覆盖它。
+
+### MajdataView 运行时
+
+- 普通 Tap、Force Star、Hold、Touch、TouchHold 与 Slide/Wifi 静态星头使用 `naturalEach || isForceYellow` 选择 EACH 素材；`isEach` 本身、Touch 分组和 `EachLineDrop` 逻辑不变。
+- Slide/Wifi 分别保存“移动星 Yellow”和“轨迹 Yellow”状态。`IsForceYellow` 决定静态星头以及同一连接 Slide 分支的全部移动星；`ForceYellowSlideSegmentIndices` 只决定对应轨迹段，不会单独染黄移动星。
+- 无头 Slide 隐藏的静态星头带 `y` 时，仍由 `IsForceYellow` 让可见移动星变黄；同头 `*` 拆出的分支各自读取自己的标志，不跨分支传播。
+- JSON 加载在实例化任何物件前严格校验逐段索引：非 Slide 不得携带索引，索引必须非负、严格递增、无重复且不越界；字段缺失或显式 `null` 继续按空数组兼容。
 
 ### 其他消费方
 
@@ -64,7 +71,9 @@
 | `SyntaxModule/SyntaxCheck.cs` | 接受合法 `y` 并拒绝所有 `b`/`y` 冲突 |
 | `MainWindowCore.cs` | 合并自然 EACH 与 Force Yellow 的时间轴外观 |
 | `SlideSegmentTimingAnalysis.cs`、`ForceYellowSlideSegmentHelper.cs` | 时间轴与导出共享逐段作用域校验 |
-| MajdataView 运行时 | 本阶段未修改，作为后续接入项保留 |
+| `MajdataView/Assets/Scripts/ForceYellowAppearance.cs` | 独立计算 EACH/Force Yellow 外观、连接 Slide 移动星传播和逐段轨迹映射，并提供严格索引校验 |
+| `MajdataView/Assets/Scripts/JsonDataLoader.cs` | 在实例化前校验 managed JSON，并把头部、移动星和逐段轨迹状态传播到运行时组件 |
+| `MajdataView/Assets/Scripts/Notes/*.cs` | 在不改变逻辑 `isEach` 的前提下，为 Tap/Hold/Touch/TouchHold/Slide/Wifi 选择 EACH 素材 |
 | `Ma2Export/SimaiChartConverter.cs` | 以 `!y` 保存头部和逐段轨迹状态 |
 | 文档与验证器 | 记录语法矩阵并覆盖合法、非法、JSON、MA2 和 ABI 回归 |
 
@@ -79,7 +88,7 @@
 | D-005 | 允许 `y+x`、`y+$`/`$$`、`y+@`；按 Slide 分支禁止 `y+b`/`y+m`；自然 EACH 中丢弃 `y`；`y` 与自然 EACH 共享 HSpeed 配色优先级 | 已确认 |
 | D-006 | 轨迹接受两种位置；重复 `y` 非法；仅小写 `y`；兼容 header 标志顺序无关；`y` 专属非法形式抛出语法异常 | 已确认 |
 | D-007 | 使用私有 `!y` 尾标记保留导出语义；不承诺未实现该扩展的读取器行为 | 已确认 |
-| D-008 | 本阶段暂不接入 MajdataView/外部运行时；保留未来数据契约说明 | 已确认 |
+| D-008 | MajdataView 已按独立外观状态接入；头部 `y` 控制静态星头和同分支移动星，逐段索引只控制轨迹，`*` 分支互不传播 | 已确认并完成 |
 | D-009 | 公共属性采用 Force Yellow 命名；本阶段保持旧 native ABI 不变且仅 managed API 完整暴露；序列化、测试和版本要求 | 已确认 |
 
 ## 访谈记录
@@ -106,13 +115,15 @@
 
 澄清：当前不存在“无头 Slide 轨迹的 EACH 外观”。`EachNoteAnalysis.IsCandidate` 明确排除 `IsSlideNoHead`；编辑器绘制普通 Slide 时，也只有可见星头调用接受 `isEach` 的 `GetTapStarColor`，轨迹始终调用不接收 EACH 状态的 `GetSlideColor`。因此，即使普通 Slide 属于自然 EACH，其轨迹也不会变黄。若允许 `y` 改变无头 Slide 轨迹，就需要定义一种全新的 Yellow Slide 轨迹视觉，不再属于“复用 EACH 外观”的当前目标。
 
-最终范围决策：Tap、`$`/`$$` Force Star、Hold、Touch、TouchHold、Slide/Wifi 均支持 `y`；无头 Slide `!`/`?` 也必须接受并保存 `y`。无头 Slide 没有星头，因此其头部 Force Yellow 标志可以存在但不产生可见效果；轨迹必须自行带 `y` 才显示 Yellow。
+最终范围决策：Tap、`$`/`$$` Force Star、Hold、Touch、TouchHold、Slide/Wifi 均支持 `y`；无头 Slide `!`/`?` 也必须接受并保存 `y`。无头 Slide 没有可见的静态星头，但 MajdataView 的移动星仍继承头部 `IsForceYellow` 并显示 Yellow；轨迹必须自行带 `y` 才显示 Yellow。
 
 ### Q3：无头 Slide 的 `y` 应把什么染黄？
 
-状态：原结论已被 Q9 后的用户澄清取代。
+状态：原结论已被 Q9 后的用户澄清以及后续 MajdataView 接入决策取代。
 
 被取代的结论：曾约定单个 `y` 会把整个 Slide/Wifi 染黄。最新规则改为按组件位置修饰：星头位置的 `y` 不扩散到轨迹，轨迹位置必须自行带 `y`。
+
+最终补充：星头位置的 `y` 同时决定该 Slide 分支的移动星外观。对无头 Slide，静态星头虽不可见，移动星仍可见并显示 Yellow；连接 Slide 的该状态贯穿同一分支的全部移动星，但不传播到 `*` 拆出的其他分支。
 
 ### Q4：`y` 是否允许与 EX/Critical 修饰符 `x` 共存？
 
@@ -167,7 +178,7 @@
 
 最终澄清：
 
-- `1y!-3[8:1]/2` 中的 `y` 只修饰 `1y!` 这一星头组件；由于 `!` 隐藏星头，它不产生可见 Yellow 效果。
+- `1y!-3[8:1]/2` 中的 `y` 修饰隐藏的星头组件；`!` 只隐藏静态星头，MajdataView 中仍可见的移动星继承 `IsForceYellow` 并显示 Yellow。
 - 星头位置的 `y` 不扩散到 `-3[8:1]`，所以该轨迹保持普通外观。
 - 只有轨迹组件自身带 `y`，例如用户提出的 `-3[8:1]y` 或 `-3y[8:1]`，轨迹才使用 Yellow 外观；最终接受哪些位置仍需后续确认。
 - 该规则要求数据模型区分 `IsForceYellow`（普通物件/星头）和 `ForceYellowSlideSegmentIndices`（逐段 Slide Yellow 状态），不能再用一个标志修饰整个 Slide。
@@ -180,7 +191,7 @@
 
 最终决策：只把 `1→3` 这一段染黄，`3→5` 保持普通。`1-3y[8:1]-5y[8:1]` 才会让两段都变黄。该规则同样适用于任意长度的连接 Slide；每个 `y` 只能影响其所在的一个轨迹段。
 
-实现后果：不能只新增一个轨迹布尔值，也不能沿用当前 `IsSlideBreak`/`IsMineSlide` 向全部拆分段扩散的模型。解析结果必须保存逐段 Yellow 信息，并让 JSON、编辑器轨迹绘制和 MA2 拆段分别读取对应段的状态；MajdataView 接入已按 Q16 延后。
+实现后果：不能只新增一个轨迹布尔值，也不能沿用当前 `IsSlideBreak`/`IsMineSlide` 向全部拆分段扩散的模型。解析结果必须保存逐段 Yellow 信息，并让 JSON、编辑器轨迹绘制、MA2 拆段和 MajdataView 连接 Slide 拆段分别读取对应段的状态。
 
 ### Q11：同一轨迹段允许在哪些位置书写 `y`？
 
@@ -248,11 +259,20 @@
 
 ### Q16：预览运行时是否必须端到端显示 `y`？
 
-状态：已回答，本阶段暂不处理 View。
+状态：已回答；最初阶段延期，后续 MajdataView 接入已完成。
 
-代码事实：MajSimaiX 公共 `SimaiNote` 属性会进入编辑器发送给 MajdataView 的 JSON，但当前仓库没有 MajdataView 运行时源码；打包运行时是否消费新字段需要单独接入或补丁。编辑器时间轴和 MA2 导出则属于本仓库可直接修改的范围。
+代码事实：MajSimaiX 公共 `SimaiNote` 属性会进入编辑器发送给 MajdataView 的 JSON。最初设计阶段因 MajdataView 位于独立仓库而延期；后续已在 MajdataView 中完成 managed JSON 到运行时 Sprite 的端到端接入。
 
-最终决策：本阶段先实现 simai 语法、MajSimaiX 解析模型、MajdataEdit 独立语法校验和相关参考文档；MajdataView/外部运行时的物件与轨迹渲染暂不处理。文档仍记录未来需要的 JSON/运行时数据契约，但不把“JSON 有字段”宣称为 View 已完成。
+原阶段决策：先实现 simai 语法、MajSimaiX 解析模型、MajdataEdit 独立语法校验和相关参考文档，MajdataView 运行时单独接入。
+
+后续接入决策：
+
+- `IsForceYellow` 决定普通物件、静态星头以及同一连接 Slide 分支全部移动星的 Yellow 外观；
+- `ForceYellowSlideSegmentIndices` 只决定对应轨迹段的 Yellow 外观；
+- 无头 Slide 的隐藏星头带 `y` 时，移动星仍显示 Yellow；
+- `*` 拆出的分支互不传播 Force Yellow；
+- View 内部保留逻辑 `isEach`，仅在素材选择处与 Force Yellow 做 OR；
+- 外部 JSON 的非法逐段索引在生成任何物件前严格拒绝，旧 JSON 缺失字段或显式 `null` 仍兼容。
 
 ### Q17：本阶段是否同步修改 MajdataEdit 自己的时间轴预览？
 
@@ -264,7 +284,7 @@
 
 状态：已回答，采用推荐方案。
 
-最终决策：实现。`Ma2Export/SimaiChartConverter.cs` 属于当前仓库，且 Q15 已确定 `!y` 的协议；本阶段应同步写出普通物件/星头和逐段 Slide 轨迹的 `!y`，并更新 MA2 导出参考文档。这样语法解析、编辑器时间轴和本地导出不会出现“模型有标志但导出静默丢失”的半成品状态。View 仍独立延期。
+最终决策：实现。`Ma2Export/SimaiChartConverter.cs` 属于当前仓库，且 Q15 已确定 `!y` 的协议；本阶段应同步写出普通物件/星头和逐段 Slide 轨迹的 `!y`，并更新 MA2 导出参考文档。这样语法解析、编辑器时间轴和本地导出不会出现“模型有标志但导出静默丢失”的半成品状态。MajdataView 当时作为独立接入项延期，现已按 Q16 的后续决策完成。
 
 ### Q19：逐段 Yellow 在 `SimaiNote` 中如何表示？
 
@@ -277,7 +297,7 @@ public bool IsForceYellow { get; set; }
 public int[] ForceYellowSlideSegmentIndices { get; set; } = Array.Empty<int>();
 ```
 
-- `IsForceYellow` 只表示普通物件或 Slide 星头的 `y`；无头 Slide 可保留该值，但因为没有星头而不显示。
+- `IsForceYellow` 只表示普通物件或 Slide 星头的 `y`；无头 Slide 可保留该值，静态星头不显示，但 MajdataView 的移动星仍继承该状态。
 - `ForceYellowSlideSegmentIndices` 保存当前 `SimaiNote` 内被 `y` 修饰的轨迹段索引，索引按源码顺序从 `0` 开始；Wifi 算一个轨迹段。
 - 同头 `*` 已由 MajSimaiX 拆成多个 `SimaiNote`，每个分支各自从段索引 `0` 开始。
 - 非 Slide 和没有 Yellow 轨迹的 Slide 使用空数组。索引必须严格递增、不得重复，并且必须小于解析后的轨迹段数。
@@ -341,6 +361,7 @@ public int[] ForceYellowSlideSegmentIndices { get; set; } = Array.Empty<int>();
 - 时间轴验证普通物件、星头、无头轨迹和连接 Slide 逐段 `Color.Gold`，并遵循自然 EACH/HSpeed 现有优先级；
 - MA2 导出验证头记录与各轨迹段的 `!y`、尾修饰顺序、重复规则和统计不变；
 - managed JSON 缺少新字段时默认 `IsForceYellow = false`、索引为空；旧 native ABI 的 64 字节与字段偏移验证保持通过；
+- MajdataView 验证普通物件、连接 Slide、`*` 分支、无头 Slide 和 Wifi 的静态星头/移动星/逐段轨迹映射，并在实例化前拒绝非法 JSON 索引；
 - 更新 `MajSimaiX/README.md`、仓库内 `simai-skill` 的两份语法参考、MA2 导出参考和本文；不修改工作区外安装的个人 skill 副本；
 - `dotnet build MajSimaiX/MajSimai.sln -c Debug`、MajSimaiX 验证器和 `dotnet build MajdataEdit.sln -c Debug` 全部通过，仓库既有警告单独记录。
 
@@ -358,4 +379,7 @@ public int[] ForceYellowSlideSegmentIndices { get; set; } = Array.Empty<int>();
 - `dotnet run --project MajSimaiX/Validation~/MajSimai.SVValidation.csproj -c Debug`：`19/19 validation cases passed`。
 - `dotnet build MajdataEdit.sln -c Debug`：通过，0 错误；输出既有资源重复、net6.0 EOL 和可空性警告。
 - `dotnet run --project ForceYellowValidation/MajdataEdit.ForceYellowValidation.csproj -c Debug`：`6/6 validation cases passed`。
-- 验证覆盖 MajSimaiX 正向/拒绝矩阵、自然 EACH 清除、managed JSON 默认值与 null 归一化、SyntaxCheck、时间轴逐段索引、MA2 `!y` 尾标和统计不变；未覆盖 MajdataView 运行时显示。
+- `dotnet run --project Validation~/MajdataView.ForceYellowValidation.csproj -c Debug`：`12/12 validation cases passed`，覆盖自然 EACH/Force Yellow 外观合并、连接 Slide 与无头 Slide 的移动星传播、`*` 分支独立、轨迹独立映射、旧 JSON `null` 和非法索引拒绝。
+- `dotnet build Assembly-CSharp.csproj`：通过，0 错误；根解决方案因两个同名 `MajSimai` 项目触发既有 `MSB5004`，因此使用 Unity 生成的主程序集项目验证 View 代码。
+- Unity AssetDatabase 刷新和域重载后 Console 无 Error/Exception；按正式 `Server` 启动链执行运行时 Sprite 审计，Tap、Hold、Touch、TouchHold、连接 Slide、无头 Slide 与 Wifi 均通过，Game View 可见黄色/普通轨迹和黄色移动星按合同独立组合；`*` 分支独立性由上述纯映射验证锁定。
+- 验证覆盖 MajSimaiX 正向/拒绝矩阵、自然 EACH 清除、managed JSON 默认值与 null 归一化、SyntaxCheck、时间轴逐段索引、MA2 `!y` 尾标、统计不变以及 MajdataView 运行时显示。
