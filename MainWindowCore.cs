@@ -869,7 +869,7 @@ public partial class MainWindow : Window
 
                 foreach (var noteD in notes)
                 {
-                    var isEach = SimaiProcess.EachAnalysis.Contains(noteD);
+                    var isEach = SimaiProcess.EachAnalysis.Contains(noteD) || noteD.IsForceYellow;
                     var isMine = IsMineNote(noteD);
                     var useHSpeedGroupColor = editorSetting?.ColorObjectsByHSpeedGroup == true && !isMine;
                     var hSpeedGroupColor = useHSpeedGroupColor
@@ -998,17 +998,23 @@ public partial class MainWindow : Window
                                 new PointF(x - 7f, y - 7f));
                         }
 
-                        pen.Color = useHSpeedGroupColor
-                            ? slideHSpeedGroupColor
-                            : GetSlideColor(noteD);
                         pen.DashStyle = DashStyle.Dot;
-                        var xSlide = (float)(noteD.SlideStartTime / step - startindex) * linewidth;
-                        var xSlideRight = (float)(noteD.SlideTime / step) * linewidth + xSlide;
+                        var slideSegments = SlideSegmentTimingAnalysis.Analyze(note, noteD);
+                        var forceYellowFlags = ForceYellowSlideSegmentHelper.ResolveFlags(noteD, slideSegments.Length);
+                        for (var segmentIndex = 0; segmentIndex < slideSegments.Length; segmentIndex++)
+                        {
+                            var segment = slideSegments[segmentIndex];
+                            pen.Color = useHSpeedGroupColor
+                                ? slideHSpeedGroupColor
+                                : GetSlideColor(noteD, forceYellowFlags[segmentIndex]);
+                            var xSlide = (float)(segment.StartTime / step - startindex) * linewidth;
+                            var xSlideRight = (float)(segment.Duration / step) * linewidth + xSlide;
 
-                        if (!float.IsNormal(xSlideRight)) xSlideRight = ushort.MaxValue;
-                        if (!float.IsNormal(xSlide)) xSlide = ushort.MaxValue;
+                            if (!float.IsNormal(xSlideRight)) xSlideRight = ushort.MaxValue;
+                            if (!float.IsNormal(xSlide)) xSlide = ushort.MaxValue;
 
-                        graphics.DrawLine(pen, xSlide, y, xSlideRight, y);
+                            graphics.DrawLine(pen, xSlide, y, xSlideRight, y);
+                        }
                         pen.DashStyle = DashStyle.Solid;
                     }
                 }
@@ -1668,11 +1674,11 @@ public partial class MainWindow : Window
         return isEach ? Color.Gold : Color.DeepSkyBlue;
     }
 
-    private static Color GetSlideColor(SimaiNote note)
+    private static Color GetSlideColor(SimaiNote note, bool isForceYellow = false)
     {
         if (IsMineNote(note)) return Color.Gray;
         if (note.IsSlideBreak) return Color.OrangeRed;
-        return Color.SkyBlue;
+        return isForceYellow ? Color.Gold : Color.SkyBlue;
     }
 
     private static bool IsMineNote(SimaiNote note)

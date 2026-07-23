@@ -152,11 +152,16 @@ public sealed class SimaiChartConverter
 
             foreach (var note in timingPoint.Notes)
             {
+                ValidateForceYellowCompatibility(note);
                 if (!note.IsSlideNoHead)
                 {
                     var id = GetMa2NoteId(note);
                     if (string.IsNullOrWhiteSpace(id))
                     {
+                        if (HasForceYellow(note))
+                        {
+                            throw new InvalidOperationException("Force Yellow cannot be exported for this note type");
+                        }
                         continue;
                     }
 
@@ -194,7 +199,8 @@ public sealed class SimaiChartConverter
                         MapSoflanGroup(note.SoflanGroup),
                         note.IsFixedSoflan,
                         note.HasFixedSoflanSpeed,
-                        note.FixedSoflanSpeed);
+                        note.FixedSoflanSpeed,
+                        note.IsForceYellow);
 
                     notesOutput.AppendLine();
                     AddStat(id);
@@ -207,7 +213,7 @@ public sealed class SimaiChartConverter
 
                 var subSlides = InstantiateStarGroup(timingPoint, note);
                 var prevTotalGrid = currentTotalGrid;
-                var tmpSubListOutput = new List<(string SlideId, long Grid, long StartPos, long WaitGrid, long DurationGrid, long EndPos)>();
+                var tmpSubListOutput = new List<(string SlideId, long Grid, long StartPos, long WaitGrid, long DurationGrid, long EndPos, bool IsForceYellow)>();
 
                 for (var i = 0; i < subSlides.Count; i++)
                 {
@@ -257,28 +263,28 @@ public sealed class SimaiChartConverter
                     }
 
                     tmpSubListOutput.Add((slideId, prevTotalGrid, subSlide.StartPosition - 1, waitGrid, durationGrid,
-                        endPosition - 1));
+                        endPosition - 1, subSlide.IsForceYellow));
 
                     prevTotalGrid = slideTotalGrid;
                 }
 
-                var tmpFixedSubListOutput = new List<(string SlideId, long Grid, long StartPos, long WaitGrid, long DurationGrid, long EndPos)>();
+                var tmpFixedSubListOutput = new List<(string SlideId, long Grid, long StartPos, long WaitGrid, long DurationGrid, long EndPos, bool IsForceYellow)>();
                 for (var i = 1; i < tmpSubListOutput.Count; i++)
                 {
                     var previous = tmpSubListOutput[i - 1];
                     var current = tmpSubListOutput[i];
                     var duration = current.Grid - (previous.Grid + previous.WaitGrid);
                     tmpFixedSubListOutput.Add((previous.SlideId, previous.Grid, previous.StartPos, previous.WaitGrid,
-                        duration, previous.EndPos));
+                        duration, previous.EndPos, previous.IsForceYellow));
                 }
 
                 tmpFixedSubListOutput.Add(tmpSubListOutput.Last());
 
-                foreach (var (slideId, grid, startPos, waitGrid, durationGrid, endPos) in tmpFixedSubListOutput)
+                foreach (var (slideId, grid, startPos, waitGrid, durationGrid, endPos, isForceYellow) in tmpFixedSubListOutput)
                 {
                     FormatGrid(grid, out var slideUnit, out var slideGrid);
                     notesOutput.Append($"{slideId}\t{slideUnit}\t{slideGrid}\t{startPos}\t{waitGrid}\t{durationGrid}\t{endPos}");
-                    AppendNoteTail(notesOutput, note.IsMineSlide, MapSoflanGroup(note.SlideSoflanGroup));
+                    AppendNoteTail(notesOutput, note.IsMineSlide, MapSoflanGroup(note.SlideSoflanGroup), isForceYellow: isForceYellow);
                     notesOutput.AppendLine();
                     lastSoflanTotalGrid = Math.Max(lastSoflanTotalGrid, grid + waitGrid + durationGrid);
                 }
@@ -531,9 +537,15 @@ public sealed class SimaiChartConverter
         int soflanGroup = 0,
         bool isFixedSoflan = false,
         bool hasFixedSoflanSpeed = false,
-        float fixedSoflanSpeed = 0)
+        float fixedSoflanSpeed = 0,
+        bool isForceYellow = false)
     {
-        if (!isMine && soflanGroup == 0 && !isFixedSoflan)
+        if (isMine && isForceYellow)
+        {
+            throw new InvalidOperationException("Force Yellow cannot coexist with Mine");
+        }
+
+        if (!isMine && !isForceYellow && soflanGroup == 0 && !isFixedSoflan)
         {
             return;
         }
@@ -542,6 +554,10 @@ public sealed class SimaiChartConverter
         if (isMine)
         {
             output.Append("!m");
+        }
+        if (isForceYellow)
+        {
+            output.Append("!y");
         }
 
         if (soflanGroup == 0 && !isFixedSoflan)
@@ -680,6 +696,12 @@ public sealed class SimaiChartConverter
             slide.IsEx = note.IsEx;
             slide.IsSlideBreak = note.IsSlideBreak;
             slide.IsSlideNoHead = true;
+        }
+
+        var forceYellowFlags = ForceYellowSlideSegmentHelper.ResolveFlags(note, subSlide.Count);
+        for (var i = 0; i < subSlide.Count; i++)
+        {
+            subSlide[i].IsForceYellow = forceYellowFlags[i];
         }
 
         if (subSlide.Count == 0)
@@ -1013,6 +1035,35 @@ public sealed class SimaiChartConverter
 
     private static int CharIntParse(char c) => c - '0';
 
+    private static void ValidateForceYellowCompatibility(SimaiNote note)
+    {
+        var segmentIndices = note.ForceYellowSlideSegmentIndices ?? Array.Empty<int>();
+        if (note.Type != SimaiNoteType.Slide && segmentIndices.Length != 0)
+        {
+            throw new InvalidOperationException("Force Yellow slide segment index is invalid");
+        }
+
+        var hasForceYellow = HasForceYellow(note);
+        if (!hasForceYellow)
+        {
+            return;
+        }
+
+        if (note.IsBreak || note.IsSlideBreak)
+        {
+            throw new InvalidOperationException("Force Yellow cannot coexist with Break");
+        }
+        if (note.IsMine || note.IsMineSlide)
+        {
+            throw new InvalidOperationException("Force Yellow cannot coexist with Mine");
+        }
+    }
+
+    private static bool HasForceYellow(SimaiNote note)
+    {
+        return note.IsForceYellow || (note.ForceYellowSlideSegmentIndices?.Length ?? 0) != 0;
+    }
+
     private static string FormatBpm(float bpm) => bpm.ToString("G9", CultureInfo.InvariantCulture);
     private static string FormatBpmFixed(float bpm) => bpm.ToString("F3", CultureInfo.InvariantCulture);
 
@@ -1022,6 +1073,7 @@ public sealed class SimaiChartConverter
         public bool IsSlideBreak { get; set; }
         public bool IsEx { get; set; }
         public bool IsSlideNoHead { get; set; }
+        public bool IsForceYellow { get; set; }
         public int StartPosition { get; set; }
         public double SlideStartTime { get; set; }
         public double SlideTime { get; set; }

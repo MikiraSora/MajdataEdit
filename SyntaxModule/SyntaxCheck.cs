@@ -886,6 +886,17 @@ namespace MajdataEdit.SyntaxModule
                 return false;
             }
 
+            if (!TryStripForceYellowModifiers(ref noteStr))
+            {
+                ErrorList.Add(new SimaiErrorInfo(posX, posY,
+                    string.Format(
+                        MainWindow.GetLocalizedString("SyntaxError"),
+                        originalNoteStr,
+                        posY,
+                        posX)));
+                return false;
+            }
+
             // MajSimaiX consumes the lowercase `m` flag before note-level parsing.
             // Strip it after FixedSoflan so invalid values such as `1@m` still fail.
             noteStr = noteStr.Replace("m", string.Empty);
@@ -924,6 +935,51 @@ namespace MajdataEdit.SyntaxModule
                         posX)));
             return false;
 
+        }
+
+        static bool TryStripForceYellowModifiers(ref string noteStr)
+        {
+            try
+            {
+                if (!noteStr.Contains('y') && !noteStr.Contains('Y'))
+                    return true;
+
+                if (!noteStr.Contains('*'))
+                {
+                    noteStr = ForceYellowModifierParser.Parse(noteStr.AsSpan()).NoteContent;
+                    return true;
+                }
+
+                var parts = noteStr.Split('*');
+                if (parts.Length == 0 || parts[0].Length == 0)
+                    return false;
+
+                var head = parts[0][0];
+                var normalized = new System.Text.StringBuilder(noteStr.Length);
+                for (var i = 0; i < parts.Length; i++)
+                {
+                    if (parts[i].Length == 0)
+                        return false;
+
+                    var branch = i == 0 ? parts[i] : head + parts[i];
+                    var result = ForceYellowModifierParser.Parse(branch.AsSpan()).NoteContent;
+                    if (i != 0)
+                    {
+                        if (result.Length == 0 || result[0] != head)
+                            return false;
+                        result = result[1..];
+                        normalized.Append('*');
+                    }
+                    normalized.Append(result);
+                }
+
+                noteStr = normalized.ToString();
+                return true;
+            }
+            catch (InvalidSimaiMarkupException)
+            {
+                return false;
+            }
         }
 
         static bool TryStripFixedSoflanModifier(ref string noteStr, out bool hasFixedSoflan)
@@ -1053,6 +1109,7 @@ namespace MajdataEdit.SyntaxModule
         {
             if (slideStr.Length < 3)
                 return false;
+            slideStr = RemoveSlideBodyBreakFlagsForSyntaxCheck(slideStr);
             if (slideStr[1] is ('b' or 'x') && slideStr[2] is ('b' or 'x'))
                 slideStr = slideStr.Remove(1,2);
             else if(slideStr[1] is ('b' or 'x'))
@@ -1250,6 +1307,27 @@ namespace MajdataEdit.SyntaxModule
             }
             return true;
 
+        }
+
+        static string RemoveSlideBodyBreakFlagsForSyntaxCheck(string slideStr)
+        {
+            var firstSlideMark = IndexOfFirstSlideMark(slideStr);
+            if (firstSlideMark < 0)
+                return slideStr;
+
+            var result = new System.Text.StringBuilder(slideStr.Length);
+            for (var i = 0; i < slideStr.Length; i++)
+            {
+                if (i >= firstSlideMark && slideStr[i] == 'b' &&
+                    ((i + 1 < slideStr.Length && slideStr[i + 1] == '[') ||
+                     i == slideStr.Length - 1 ||
+                     (i + 1 < slideStr.Length && slideStr[i + 1] == '*')))
+                {
+                    continue;
+                }
+                result.Append(slideStr[i]);
+            }
+            return result.ToString();
         }
         /// <summary>
         /// Slide路径检查

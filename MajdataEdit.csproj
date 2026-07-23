@@ -17,9 +17,13 @@
     </PropertyGroup>
     <ItemGroup>
       <Compile Remove="MajSimaiX\**" />
+      <Compile Remove="ForceYellowValidation\**" />
       <EmbeddedResource Remove="MajSimaiX\**" />
+      <EmbeddedResource Remove="ForceYellowValidation\**" />
       <None Remove="MajSimaiX\**" />
+      <None Remove="ForceYellowValidation\**" />
       <Page Remove="MajSimaiX\**" />
+      <Page Remove="ForceYellowValidation\**" />
     </ItemGroup>
     <ItemGroup>
       <None Remove="Image\bg_dummy.jpg" />
