@@ -252,7 +252,8 @@ public sealed class SimaiChartConverter
                         _ => SimaiSlideMap[pattern]
                     };
 
-                    var slideId = prefix + Ma2SlideMap[simaiId];
+                    var isSelfReturningV = pattern == "v" && curPosition == endPosition;
+                    var slideId = isSelfReturningV ? "SHL" : prefix + Ma2SlideMap[simaiId];
                     var slideTotalGrid = CalculateGrid(subSlide.SlideStartTime);
                     var waitGrid = slideTotalGrid - prevTotalGrid;
                     var durationGrid = CalculateGrid(subSlide.SlideStartTime + subSlide.SlideTime) - slideTotalGrid;
@@ -842,7 +843,7 @@ public sealed class SimaiChartConverter
             var startPos = int.Parse(digits[0], CultureInfo.InvariantCulture);
             var endPos = int.Parse(digits[1], CultureInfo.InvariantCulture);
             endPos = ToRelativePosition(startPos, endPos);
-            if (endPos == 5 || endPos == 1)
+            if (endPos == 5)
             {
                 throw new InvalidOperationException("v星星不合法\nvスライドエラー");
             }

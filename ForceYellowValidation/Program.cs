@@ -10,7 +10,8 @@ var tests = new (string Name, Func<Task> Body)[]
     ("timeline segment analysis preserves Force Yellow scope", TimelineSegmentAnalysis),
     ("MA2 exports Force Yellow note tails", Ma2ExportsForceYellow),
     ("MA2 exports per-segment Force Yellow tails", Ma2ExportsForceYellowSegments),
-    ("MA2 natural each does not export discarded Force Yellow", Ma2NaturalEachDiscard)
+    ("MA2 natural each does not export discarded Force Yellow", Ma2NaturalEachDiscard),
+    ("MA2 exports self-returning v slides as SHL", Ma2ExportsSelfReturningVSlides)
 };
 
 var failures = 0;
@@ -113,6 +114,33 @@ static Task Ma2NaturalEachDiscard()
     Expect(noteLines.All(line => !line.Contains("!y", StringComparison.Ordinal)),
         "discarded natural-each Force Yellow leaked into MA2");
     Expect(output.Contains("TTM_EACHPAIRS\t1", StringComparison.Ordinal), "natural each pair count changed");
+    return Task.CompletedTask;
+}
+
+static Task Ma2ExportsSelfReturningVSlides()
+{
+    var chart = string.Join(",", Enumerable.Range(1, 8).Select(position => $"{position}v{position}[8:1]")) +
+                ",1v2[8:1]";
+    var output = new SimaiChartConverter().ConvertChartToMa2Content($"(120){{4}}{chart},");
+    var lines = GetLines(output);
+    var slideLines = lines
+        .Where(line => line.StartsWith("SHL\t", StringComparison.Ordinal))
+        .ToArray();
+
+    Expect(slideLines.Length == 8, $"expected 8 self-returning SHL bodies, found {slideLines.Length}");
+    for (var i = 0; i < slideLines.Length; i++)
+    {
+        var fields = slideLines[i].Split('\t');
+        Expect(fields.Length >= 7, $"self-returning SHL record was incomplete: {slideLines[i]}");
+        Expect(fields[3] == i.ToString() && fields[6] == i.ToString(),
+            $"self-returning SHL positions were {fields[3]} -> {fields[6]}, expected {i} -> {i}");
+    }
+
+    var ordinaryV = lines.Single(line => line.StartsWith("NMSV_\t", StringComparison.Ordinal));
+    var ordinaryVFields = ordinaryV.Split('\t');
+    Expect(ordinaryVFields[3] == "0" && ordinaryVFields[6] == "1",
+        $"ordinary v MA2 positions were {ordinaryVFields[3]} -> {ordinaryVFields[6]}, expected 0 -> 1");
+
     return Task.CompletedTask;
 }
 
