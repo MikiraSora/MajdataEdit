@@ -281,11 +281,18 @@ public sealed class SimaiChartConverter
 
                 tmpFixedSubListOutput.Add(tmpSubListOutput.Last());
 
-                foreach (var (slideId, grid, startPos, waitGrid, durationGrid, endPos, isForceYellow) in tmpFixedSubListOutput)
+                for (var segmentIndex = 0; segmentIndex < tmpFixedSubListOutput.Count; segmentIndex++)
                 {
+                    var (slideId, grid, startPos, waitGrid, durationGrid, endPos, isForceYellow) =
+                        tmpFixedSubListOutput[segmentIndex];
                     FormatGrid(grid, out var slideUnit, out var slideGrid);
                     notesOutput.Append($"{slideId}\t{slideUnit}\t{slideGrid}\t{startPos}\t{waitGrid}\t{durationGrid}\t{endPos}");
-                    AppendNoteTail(notesOutput, note.IsMineSlide, MapSoflanGroup(note.SlideSoflanGroup), isForceYellow: isForceYellow);
+                    AppendNoteTail(
+                        notesOutput,
+                        note.IsMineSlide,
+                        MapSoflanGroup(note.SlideSoflanGroup),
+                        isForceYellow: isForceYellow,
+                        isForceYellowMovingStar: segmentIndex == 0 && note.IsForceYellow);
                     notesOutput.AppendLine();
                     lastSoflanTotalGrid = Math.Max(lastSoflanTotalGrid, grid + waitGrid + durationGrid);
                 }
@@ -539,14 +546,15 @@ public sealed class SimaiChartConverter
         bool isFixedSoflan = false,
         bool hasFixedSoflanSpeed = false,
         float fixedSoflanSpeed = 0,
-        bool isForceYellow = false)
+        bool isForceYellow = false,
+        bool isForceYellowMovingStar = false)
     {
-        if (isMine && isForceYellow)
+        if (isMine && (isForceYellow || isForceYellowMovingStar))
         {
             throw new InvalidOperationException("Force Yellow cannot coexist with Mine");
         }
 
-        if (!isMine && !isForceYellow && soflanGroup == 0 && !isFixedSoflan)
+        if (!isMine && !isForceYellow && !isForceYellowMovingStar && soflanGroup == 0 && !isFixedSoflan)
         {
             return;
         }
@@ -555,6 +563,10 @@ public sealed class SimaiChartConverter
         if (isMine)
         {
             output.Append("!m");
+        }
+        if (isForceYellowMovingStar)
+        {
+            output.Append("!yh");
         }
         if (isForceYellow)
         {

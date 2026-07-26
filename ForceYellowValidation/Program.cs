@@ -10,6 +10,7 @@ var tests = new (string Name, Func<Task> Body)[]
     ("timeline segment analysis preserves Force Yellow scope", TimelineSegmentAnalysis),
     ("MA2 exports Force Yellow note tails", Ma2ExportsForceYellow),
     ("MA2 exports per-segment Force Yellow tails", Ma2ExportsForceYellowSegments),
+    ("MA2 exports branch-local moving-star Force Yellow tails", Ma2ExportsMovingStarForceYellow),
     ("MA2 natural each does not export discarded Force Yellow", Ma2NaturalEachDiscard),
     ("MA2 exports self-returning v slides as SHL", Ma2ExportsSelfReturningVSlides)
 };
@@ -98,11 +99,43 @@ static Task Ma2ExportsForceYellowSegments()
 
     Expect(lines.Any(line => line.StartsWith("NMSTR\t0\t0\t0\t!y", StringComparison.Ordinal)),
         "Force Yellow Slide head did not export !y");
+    Expect(lines.Any(line => line.StartsWith("NMSI_\t0\t0\t0\t", StringComparison.Ordinal) &&
+                             line.EndsWith("\t!yh", StringComparison.Ordinal)),
+        "Force Yellow Slide moving star did not export !yh");
 
     var yellowLines = lines.Where(line => line.EndsWith("\t!y", StringComparison.Ordinal)).ToArray();
     var yellowHeadLines = yellowLines.Count(line => line.StartsWith("NMSTR\t", StringComparison.Ordinal));
     Expect(yellowLines.Length == 4 && yellowHeadLines == 1,
         "Force Yellow was not emitted on exactly the requested Slide segments");
+    return Task.CompletedTask;
+}
+
+static Task Ma2ExportsMovingStarForceYellow()
+{
+    var output = new SimaiChartConverter().ConvertChartToMa2Content(
+        "(120){4}1y-3[8:1],2y!-4[8:1],3y!-5y[8:1]," +
+        "4y-6[8:1]-8y[8:1],5y-7[8:1]*-1b[8:1],6yw2[8:1],");
+    var lines = GetLines(output);
+
+    var movingStarLines = lines.Where(line =>
+        line.Contains("\t!yh", StringComparison.Ordinal)).ToArray();
+    Expect(movingStarLines.Length == 6,
+        $"expected six branch-local !yh records, found {movingStarLines.Length}");
+    Expect(movingStarLines.All(line => !line.StartsWith("CN", StringComparison.Ordinal)),
+        "connected Slide continuation incorrectly exported !yh");
+    Expect(movingStarLines.Any(line => line.EndsWith("\t!yh!y", StringComparison.Ordinal)),
+        "combined moving-star/path Yellow did not use canonical !yh!y order");
+
+    var yellowHeadLines = lines.Where(line =>
+        line.StartsWith("NMSTR\t", StringComparison.Ordinal) &&
+        line.EndsWith("\t!y", StringComparison.Ordinal)).ToArray();
+    Expect(yellowHeadLines.Length == 4,
+        $"expected four visible Yellow star heads, found {yellowHeadLines.Length}");
+
+    var breakBranch = lines.Single(line => line.StartsWith("BRSI_\t", StringComparison.Ordinal));
+    Expect(!breakBranch.Contains("!y", StringComparison.Ordinal),
+        "independent same-head Break branch inherited Force Yellow");
+
     return Task.CompletedTask;
 }
 

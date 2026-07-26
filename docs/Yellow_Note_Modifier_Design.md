@@ -57,7 +57,7 @@
 
 - 音效生成、不可理检查和计分目前不根据自然 EACH 外观分支；若 `y` 定义为纯外观，这些模块原则上无需改变行为。
 - 镜像逻辑只改写位置和 Slide 方向，未知普通字符会原样保留；语法层接受 `y` 后，镜像预计无需专门转换。
-- MA2 导出器以私有 `!y` 尾标记保存普通物件/星头与指定轨迹段；未实现扩展的外部读取器行为不在兼容合同内。
+- MA2 导出器以私有 `!y` 保存当前记录自身的 Yellow，以分支级 `!yh` 保存 Slide/Wifi 移动星 Yellow；同一首段可规范输出 `!yh!y`。未实现扩展的外部读取器行为不在兼容合同内。
 - MA2 的 `TTM_EACHPAIRS` 仍只由自然 EACH 分组数生成，不读取 Force Yellow 属性。
 
 ## 实际实现文件
@@ -74,7 +74,7 @@
 | `MajdataView/Assets/Scripts/ForceYellowAppearance.cs` | 独立计算 EACH/Force Yellow 外观、连接 Slide 移动星传播和逐段轨迹映射，并提供严格索引校验 |
 | `MajdataView/Assets/Scripts/JsonDataLoader.cs` | 在实例化前校验 managed JSON，并把头部、移动星和逐段轨迹状态传播到运行时组件 |
 | `MajdataView/Assets/Scripts/Notes/*.cs` | 在不改变逻辑 `isEach` 的前提下，为 Tap/Hold/Touch/TouchHold/Slide/Wifi 选择 EACH 素材 |
-| `Ma2Export/SimaiChartConverter.cs` | 以 `!y` 保存头部和逐段轨迹状态 |
+| `Ma2Export/SimaiChartConverter.cs` | 以 `!y` 保存当前记录状态，并在每个 Yellow Slide/Wifi 分支首段以 `!yh` 保存移动星状态 |
 | 文档与验证器 | 记录语法矩阵并覆盖合法、非法、JSON、MA2 和 ABI 回归 |
 
 ## 决策记录
@@ -87,7 +87,7 @@
 | D-004 | 支持全部常规物件及无头 Slide；Slide/Wifi 的星头与轨迹独立修饰，连接 Slide 的轨迹 `y` 逐段生效 | 已确认 |
 | D-005 | 允许 `y+x`、`y+$`/`$$`、`y+@`；按 Slide 分支禁止 `y+b`/`y+m`；自然 EACH 中丢弃 `y`；`y` 与自然 EACH 共享 HSpeed 配色优先级 | 已确认 |
 | D-006 | 轨迹接受两种位置；重复 `y` 非法；仅小写 `y`；兼容 header 标志顺序无关；`y` 专属非法形式抛出语法异常 | 已确认 |
-| D-007 | 使用私有 `!y` 尾标记保留导出语义；不承诺未实现该扩展的读取器行为 | 已确认 |
+| D-007 | 使用私有 `!y` 保存当前记录 Yellow，并以分支级 `!yh` 保存 Slide/Wifi 移动星 Yellow；不承诺未实现该扩展的读取器行为 | 已确认并扩展 |
 | D-008 | MajdataView 已按独立外观状态接入；头部 `y` 控制静态星头和同分支移动星，逐段索引只控制轨迹，`*` 分支互不传播 | 已确认并完成 |
 | D-009 | 公共属性采用 Force Yellow 命名；本阶段保持旧 native ABI 不变且仅 managed API 完整暴露；序列化、测试和版本要求 | 已确认 |
 
@@ -244,18 +244,28 @@
 
 ### Q15：MA2 导出如何保留 Yellow？
 
-状态：已回答，采用 `!y` 私有尾标记，但不纳入外部读取器兼容性承诺。
+状态：已回答；原 `!y` 方案在游戏接入访谈中扩展为 `!y` + `!yh`，但仍不纳入外部读取器兼容性承诺。
 
 代码事实：标准 MA2 note ID 和当前私有尾字段没有 Yellow 语义；若直接沿用现有导出，`y` 会丢失。连接 Slide 又要求逐段保存 Yellow，因此头记录和对应轨迹记录需要分别处理。
 
-最终决策：增加 Majdata 私有尾标记 `!y`，仿照现有 `!m`：
+初始决策：增加 Majdata 私有尾标记 `!y`，仿照现有 `!m`：
 
 - 普通物件/星头 `y` 输出到该物件记录尾字段；
 - 某个 Slide 轨迹段的 `y` 输出到该段 MA2 轨迹记录；
 - 自然 EACH 中已按 Q7/Q8 丢弃的 `y` 不输出；
 - 解析器应把 `!y` 与 `!m`、`#groupFspeed` 作为顺序无关的私有尾修饰，并拒绝重复 `!y`。
 
-未实现 `!y` 的外部读取器如何处理该字段不属于本设计的兼容性合同，不假设其会忽略、降级或保留。导出器自身不得静默丢弃 `y`，也不因存在 `y` 拒绝导出。
+未实现 Majdata 私有 Yellow 标记的外部读取器如何处理这些字段不属于本设计的兼容性合同，不假设其会忽略、降级或保留。导出器自身不得静默丢弃 `y`，也不因存在 `y` 拒绝导出。
+
+游戏接入后的协议扩展：单独的 `!y` 无法表达无头 Slide 和同头 `*` 各分支的移动星状态，因此新增精确小写标记 `!yh`：
+
+- `!y` 只表示当前 MA2 记录自身使用 Yellow 外观：普通物件/静态星头，或当前 Slide/Wifi 轨迹段；
+- `!yh` 只写在当前 Slide/Wifi 分支首个正文记录，表示该分支移动星使用 Yellow 外观；有头、无头和同头后续分支都按各自状态独立写出；
+- 连接续段 `CNS*` 不重复 `!yh`；同一首段同时黄化移动星和轨迹时规范输出 `!yh!y`；
+- 可见 Yellow 星头同时输出星头记录 `!y` 与其首分支正文 `!yh`，避免同头多个分支错误共享移动星颜色；
+- 规范尾顺序为 `!m`、`!yh`、`!y`、`#groupFspeed`。读取器按顺序无关方式识别，但必须先匹配较长的 `!yh`；
+- `!m` 与任一 Yellow 标记互斥；重复标记、未知 `!...`、非法记录位置和正文续段上的 `!yh` 均拒绝；`#...` 内容由现有 Soflan 逻辑处理，本协议只移除私有标记并原样透传剩余文本；
+- 游戏读取器仅对旧版“可见星头有 `!y`、首分支缺 `!yh`”做受限兼容：为首分支推导移动星 Yellow 并记录警告。无头或同头后续分支在旧 MA2 中丢失的状态无法恢复。
 
 ### Q16：预览运行时是否必须端到端显示 `y`？
 
@@ -280,11 +290,11 @@
 
 最终决策：同步修改。`MainWindowCore` 的时间轴是当前仓库内的独立消费者，不依赖外部 View；让它读取 Force Yellow 标志可以立即验证星头/普通物件和逐段 Slide 轨迹的作用域。它不等同于 Q16 中暂缓的 MajdataView 接入。
 
-### Q18：本阶段是否同时实现 MA2 `!y` 导出？
+### Q18：本阶段是否同时实现 MA2 `!y`/`!yh` 导出？
 
 状态：已回答，采用推荐方案。
 
-最终决策：实现。`Ma2Export/SimaiChartConverter.cs` 属于当前仓库，且 Q15 已确定 `!y` 的协议；本阶段应同步写出普通物件/星头和逐段 Slide 轨迹的 `!y`，并更新 MA2 导出参考文档。这样语法解析、编辑器时间轴和本地导出不会出现“模型有标志但导出静默丢失”的半成品状态。MajdataView 当时作为独立接入项延期，现已按 Q16 的后续决策完成。
+最终决策：实现。`Ma2Export/SimaiChartConverter.cs` 属于当前仓库，且 Q15 已确定扩展协议；本阶段同步写出普通物件/星头和逐段 Slide 轨迹的 `!y`，并为每个 Yellow Slide/Wifi 分支首段写出 `!yh`。这样语法解析、编辑器时间轴、本地导出和游戏运行时不会出现移动星状态静默丢失的半成品状态。MajdataView 当时作为独立接入项延期，现已按 Q16 的后续决策完成。
 
 ### Q19：逐段 Yellow 在 `SimaiNote` 中如何表示？
 
@@ -359,7 +369,7 @@ public int[] ForceYellowSlideSegmentIndices { get; set; } = Array.Empty<int>();
 - 拒绝矩阵：`b/y`、`m/y` 分支冲突、同组件重复 `y`、非法位置、大写 `Y`、无效 FixedSoflan 组合；
 - MajdataEdit `SyntaxCheck` 与 MajSimaiX 对相同输入保持接受/拒绝一致；
 - 时间轴验证普通物件、星头、无头轨迹和连接 Slide 逐段 `Color.Gold`，并遵循自然 EACH/HSpeed 现有优先级；
-- MA2 导出验证头记录与各轨迹段的 `!y`、尾修饰顺序、重复规则和统计不变；
+- MA2 导出验证头记录与各轨迹段的 `!y`、分支首段 `!yh`、规范 `!yh!y` 顺序、同头分支隔离、重复规则和统计不变；
 - managed JSON 缺少新字段时默认 `IsForceYellow = false`、索引为空；旧 native ABI 的 64 字节与字段偏移验证保持通过；
 - MajdataView 验证普通物件、连接 Slide、`*` 分支、无头 Slide 和 Wifi 的静态星头/移动星/逐段轨迹映射，并在实例化前拒绝非法 JSON 索引；
 - 更新 `MajSimaiX/README.md`、仓库内 `simai-skill` 的两份语法参考、MA2 导出参考和本文；不修改工作区外安装的个人 skill 副本；
@@ -376,10 +386,10 @@ public int[] ForceYellowSlideSegmentIndices { get; set; } = Array.Empty<int>();
 ## 实际验证结果
 
 - `dotnet build MajSimaiX/MajSimai.sln -c Debug`：通过，0 错误；保留项目既有的目标框架与可空性警告。
-- `dotnet run --project MajSimaiX/Validation~/MajSimai.SVValidation.csproj -c Debug`：`19/19 validation cases passed`。
+- `dotnet run --project MajSimaiX/Validation~/MajSimai.SVValidation.csproj -c Debug`：`23/23 validation cases passed`。
 - `dotnet build MajdataEdit.sln -c Debug`：通过，0 错误；输出既有资源重复、net6.0 EOL 和可空性警告。
-- `dotnet run --project ForceYellowValidation/MajdataEdit.ForceYellowValidation.csproj -c Debug`：`6/6 validation cases passed`。
+- `dotnet run --project ForceYellowValidation/MajdataEdit.ForceYellowValidation.csproj -c Debug`：`8/8 validation cases passed`，其中分支级用例覆盖有头、无头、连接、同头 `*`、Wifi 与 `!yh!y` 规范顺序。
 - `dotnet run --project Validation~/MajdataView.ForceYellowValidation.csproj -c Debug`：`12/12 validation cases passed`，覆盖自然 EACH/Force Yellow 外观合并、连接 Slide 与无头 Slide 的移动星传播、`*` 分支独立、轨迹独立映射、旧 JSON `null` 和非法索引拒绝。
 - `dotnet build Assembly-CSharp.csproj`：通过，0 错误；根解决方案因两个同名 `MajSimai` 项目触发既有 `MSB5004`，因此使用 Unity 生成的主程序集项目验证 View 代码。
 - Unity AssetDatabase 刷新和域重载后 Console 无 Error/Exception；按正式 `Server` 启动链执行运行时 Sprite 审计，Tap、Hold、Touch、TouchHold、连接 Slide、无头 Slide 与 Wifi 均通过，Game View 可见黄色/普通轨迹和黄色移动星按合同独立组合；`*` 分支独立性由上述纯映射验证锁定。
-- 验证覆盖 MajSimaiX 正向/拒绝矩阵、自然 EACH 清除、managed JSON 默认值与 null 归一化、SyntaxCheck、时间轴逐段索引、MA2 `!y` 尾标、统计不变以及 MajdataView 运行时显示。
+- 验证覆盖 MajSimaiX 正向/拒绝矩阵、自然 EACH 清除、managed JSON 默认值与 null 归一化、SyntaxCheck、时间轴逐段索引、MA2 `!y`/`!yh` 尾标、统计不变以及 MajdataView 运行时显示。
