@@ -46,17 +46,28 @@ internal static class MusicXmlExporter
         {
             progress?.Report("正在转换启用的 simai 谱面……");
             var converter = new SimaiChartConverter();
-            var generatedCharts = new Dictionary<int, (string FileName, string Content, int MaxNotes)>();
+            var generatedCharts = new Dictionary<int, (string FileName, string Content, int MaxNotes, Ma2ConversionReport Report)>();
             foreach (var difficulty in request.Difficulties.Where(x => x.IsEnabled).OrderBy(x => x.SlotIndex))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var content = converter.ConvertChartToMa2Content(
+                var conversion = converter.ConvertChartToMa2(
                     difficulty.ChartContent,
                     request.Bpm,
                     request.HSpeedInterpolationGrid);
                 var fileName = $"{request.FinalMusicId}_{difficulty.SlotIndex:00}.ma2";
-                generatedCharts.Add(difficulty.SlotIndex, (fileName, content, GetMaxNotes(content)));
-                File.WriteAllText(Path.Combine(stagingDirectory, fileName), content, Utf8NoBom);
+                generatedCharts.Add(difficulty.SlotIndex, (
+                    fileName,
+                    conversion.Content,
+                    GetMaxNotes(conversion.Content),
+                    conversion.Report));
+                File.WriteAllText(Path.Combine(stagingDirectory, fileName), conversion.Content, Utf8NoBom);
+                if (conversion.Report.FinalResolution != Ma2AdaptiveResolutionOptions.DefaultResolution ||
+                    conversion.Report.UsedMinimumGridRepair)
+                {
+                    progress?.Report(
+                        $"{fileName}: R={conversion.Report.FinalResolution}，" +
+                        $"自动调整 {conversion.Report.AdjustedObjectCount} 个物件。");
+                }
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -84,7 +95,8 @@ internal static class MusicXmlExporter
             return new MusicXmlExportResult(
                 targetDirectory,
                 Path.Combine(targetDirectory, "Music.xml"),
-                ma2Paths);
+                ma2Paths,
+                generatedCharts.Values.Select(x => x.Report).ToArray());
         }
         finally
         {
@@ -160,7 +172,7 @@ internal static class MusicXmlExporter
     private static void UpdateDocument(
         XDocument document,
         MusicXmlExportRequest request,
-        IReadOnlyDictionary<int, (string FileName, string Content, int MaxNotes)> generatedCharts)
+        IReadOnlyDictionary<int, (string FileName, string Content, int MaxNotes, Ma2ConversionReport Report)> generatedCharts)
     {
         var root = document.Root ?? throw new InvalidDataException("Music.xml 模板没有根元素。");
         if (!string.Equals(root.Name.LocalName, "MusicData", StringComparison.Ordinal))

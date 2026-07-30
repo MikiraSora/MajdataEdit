@@ -244,8 +244,17 @@ public partial class MusicXmlExportWindow : Window
             var resourceSummary = resourcePaths.Count == 0
                 ? string.Empty
                 : $"\n附加资源：{resourcePaths.Count} 个";
+            var adaptiveReports = result.ConversionReports
+                .Where(x => x.FinalResolution != Ma2AdaptiveResolutionOptions.DefaultResolution ||
+                            x.UsedMinimumGridRepair)
+                .ToArray();
+            var adaptiveSummary = adaptiveReports.Length == 0
+                ? string.Empty
+                : $"\n自适应 MA2：{adaptiveReports.Length} 个，自动调整物件 " +
+                  $"{adaptiveReports.Sum(x => x.AdjustedObjectCount)} 个；详情已显示在导出状态中。";
             MessageBox.Show(
-                $"Music.xml 生成完成，共生成 {result.Ma2Paths.Count} 个 MA2：\n{result.TargetDirectory}{resourceSummary}",
+                $"Music.xml 生成完成，共生成 {result.Ma2Paths.Count} 个 MA2：\n" +
+                $"{result.TargetDirectory}{resourceSummary}{adaptiveSummary}",
                 Title,
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

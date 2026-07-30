@@ -6,8 +6,6 @@ namespace MajdataEdit.Ma2Export;
 
 public sealed class SimaiChartConverter
 {
-    private const long Resolution = 384;
-
     private static readonly Dictionary<int, string> Ma2SlideMap = new Dictionary<string, int>
     {
         { "SI_", 1 },
@@ -40,14 +38,30 @@ public sealed class SimaiChartConverter
 
     public string ConvertChartToMa2Content(string chartContent, float? fallbackWholeBpm = null, int hSpeedInterpolationGrid = 32)
     {
+        return ConvertChartToMa2(
+            chartContent,
+            fallbackWholeBpm,
+            hSpeedInterpolationGrid).Content;
+    }
+
+    public Ma2ConversionResult ConvertChartToMa2(
+        string chartContent,
+        float? fallbackWholeBpm = null,
+        int hSpeedInterpolationGrid = 32,
+        Ma2AdaptiveResolutionOptions? options = null)
+    {
         if (string.IsNullOrWhiteSpace(chartContent))
         {
             throw new InvalidOperationException("谱面内容为空，无法生成 MA2。");
         }
 
+        options ??= new Ma2AdaptiveResolutionOptions();
+        ValidateOptions(options);
+
         var preparedContent = PrepareChartContent(chartContent, fallbackWholeBpm);
         var chart = SimaiParser.ParseChart(preparedContent.AsSpan(), 0, hSpeedInterpolationGrid, out _);
         var allTimingPoints = chart.NoteTimings.ToArray();
+        var commaTimingPoints = chart.CommaTimings.ToArray();
         var timingPoints = allTimingPoints
             .Where(x => x.Notes.Length != 0)
             .ToArray();
@@ -56,6 +70,91 @@ public sealed class SimaiChartConverter
         {
             throw new InvalidOperationException("谱面没有可导出的音符。");
         }
+
+        var legalStep = CalculateLegalResolutionStep(commaTimingPoints);
+        var firstResolution = RoundUpToMultiple(options.MinimumResolution, legalStep);
+        if (firstResolution > options.MaximumResolution)
+        {
+            throw new InvalidOperationException(
+                $"拍号要求分辨率为 {legalStep} 的倍数，但允许范围 " +
+                $"{options.MinimumResolution}..{options.MaximumResolution} 内没有合法值。");
+        }
+
+        var engine = new Ma2AdaptiveResolutionEngine();
+        Ma2CandidateBuild? lastCandidate = null;
+        Ma2CandidateValidation? lastValidation = null;
+        var attempts = 0;
+        for (var resolution = firstResolution;
+             resolution <= options.MaximumResolution;
+             resolution = checked(resolution + legalStep))
+        {
+            attempts++;
+            var candidate = BuildMa2Content(allTimingPoints, timingPoints, commaTimingPoints, resolution);
+            var validation = engine.Validate(candidate);
+            if (validation.IsValid)
+            {
+                return new Ma2ConversionResult(
+                    candidate.Content,
+                    new Ma2ConversionReport(
+                        Ma2AdaptiveResolutionOptions.DefaultResolution,
+                        resolution,
+                        attempts,
+                        false,
+                        Array.Empty<Ma2TimingAdjustment>()));
+            }
+
+            lastCandidate = candidate;
+            lastValidation = validation;
+            if (!options.EnableAdaptiveResolution)
+            {
+                break;
+            }
+
+            if (resolution > options.MaximumResolution - legalStep)
+            {
+                break;
+            }
+        }
+
+        if (lastCandidate is null || lastValidation is null)
+        {
+            throw new InvalidOperationException("没有生成任何 MA2 分辨率候选。");
+        }
+
+        if (!options.EnableMinimumGridRepair)
+        {
+            throw new InvalidOperationException(
+                $"MA2 在分辨率 {lastCandidate.Resolution} 下验证失败，且最小 Grid 修复已禁用：{lastValidation}");
+        }
+
+        var repaired = engine.Repair(lastCandidate);
+        var repairedCandidate = new Ma2CandidateBuild(
+            repaired.Content,
+            lastCandidate.Resolution,
+            lastCandidate.SlideSources,
+            lastCandidate.HoldSources);
+        var repairedValidation = engine.Validate(repairedCandidate);
+        if (!repairedValidation.IsValid)
+        {
+            throw new InvalidOperationException($"MA2 最终验证失败：{repairedValidation}");
+        }
+
+        return new Ma2ConversionResult(
+            repaired.Content,
+            new Ma2ConversionReport(
+                Ma2AdaptiveResolutionOptions.DefaultResolution,
+                lastCandidate.Resolution,
+                attempts,
+                true,
+                repaired.Adjustments));
+    }
+
+    private static Ma2CandidateBuild BuildMa2Content(
+        SimaiTimingPoint[] allTimingPoints,
+        SimaiTimingPoint[] timingPoints,
+        SimaiTimingPoint[] commaTimingPoints,
+        int resolution)
+    {
 
         var headerOutput = new StringBuilder();
         var compositeOutput = new StringBuilder();
@@ -68,36 +167,46 @@ public sealed class SimaiChartConverter
             throw new InvalidOperationException("谱面缺少有效 BPM，且没有可用的 &wholebpm=。");
         }
 
-        var currentBpmBaseGrid = 0L;
-        var currentBpmBaseAudioTime = 0d;
-
-        long CalculateGrid(double audioTimeInSecond)
-        {
-            var d = audioTimeInSecond - currentBpmBaseAudioTime;
-            if (d == 0)
-            {
-                return currentBpmBaseGrid;
-            }
-
-            var totalGrid = Math.Round(d * (Resolution * currentBpm) / 240d);
-            return currentBpmBaseGrid + (long)totalGrid;
-        }
+        var gridTimeline = new SimaiGridTimeline(allTimingPoints, resolution, currentBpm);
+        long CalculateGrid(double audioTimeInSecond) => gridTimeline.CalculateGrid(audioTimeInSecond);
 
         var maxBpm = timingPoints.Max(x => x.Bpm);
         var minBpm = timingPoints.Min(x => x.Bpm);
+        var meterEvents = commaTimingPoints
+            .Where(x => x.SignatureNumerator > 0 && x.SignatureDenominator > 0)
+            .OrderBy(x => x.Timing)
+            .ToArray();
+        var initialMeterNumerator = meterEvents.Length == 0 ? 4 : meterEvents[0].SignatureNumerator;
+        var initialMeterDenominator = meterEvents.Length == 0 ? 4 : meterEvents[0].SignatureDenominator;
 
         headerOutput.AppendLine("VERSION\t0.00.00\t1.04.00");
         headerOutput.AppendLine("FES_MODE\t0");
         headerOutput.AppendLine(
             $"BPM_DEF\t{FormatBpmFixed(currentBpm)}\t{FormatBpmFixed(currentBpm)}\t{FormatBpmFixed(maxBpm)}\t{FormatBpmFixed(minBpm)}");
-        headerOutput.AppendLine("MET_DEF\t4\t4");
-        headerOutput.AppendLine($"RESOLUTION\t{Resolution}");
-        headerOutput.AppendLine($"CLK_DEF\t{Resolution}");
+        headerOutput.AppendLine($"MET_DEF\t{initialMeterNumerator}\t{initialMeterDenominator}");
+        headerOutput.AppendLine($"RESOLUTION\t{resolution}");
+        headerOutput.AppendLine($"CLK_DEF\t{resolution}");
         headerOutput.AppendLine("COMPATIBLE_CODE\tMA2");
         headerOutput.AppendLine();
 
         compositeOutput.AppendLine($"BPM\t0\t0\t{FormatBpm(currentBpm)}");
-        compositeOutput.AppendLine("MET\t0\t0\t4\t4");
+        compositeOutput.AppendLine($"MET\t0\t0\t{initialMeterNumerator}\t{initialMeterDenominator}");
+        var currentMeterNumerator = initialMeterNumerator;
+        var currentMeterDenominator = initialMeterDenominator;
+        foreach (var meterEvent in meterEvents)
+        {
+            if (meterEvent.SignatureNumerator == currentMeterNumerator &&
+                meterEvent.SignatureDenominator == currentMeterDenominator)
+            {
+                continue;
+            }
+
+            FormatGrid(CalculateGrid(meterEvent.Timing), out var meterUnit, out var meterGrid);
+            compositeOutput.AppendLine(
+                $"MET\t{meterUnit}\t{meterGrid}\t{meterEvent.SignatureNumerator}\t{meterEvent.SignatureDenominator}");
+            currentMeterNumerator = meterEvent.SignatureNumerator;
+            currentMeterDenominator = meterEvent.SignatureDenominator;
+        }
         compositeOutput.AppendLine();
 
         // soflanGroup -> totalGrid -> speed
@@ -107,10 +216,24 @@ public sealed class SimaiChartConverter
         float getLastHSpeed(int soflanGroup) => lastHSpeedMap.GetValueOrDefault(soflanGroup, 1);
         void setLastHSpeed(int soflanGroup, float lastHSpeed) => lastHSpeedMap[soflanGroup] = lastHSpeed;
 
-        static void FormatGrid(long totalGrid, out long unit, out long grid)
+        void FormatGrid(long totalGrid, out long unit, out long grid)
         {
-            unit = totalGrid / Resolution;
-            grid = totalGrid % Resolution;
+            if (totalGrid is < 0 or > int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"MA2 Grid {totalGrid} is outside the non-negative Int32 range at resolution {resolution}.");
+            }
+            unit = totalGrid / resolution;
+            grid = totalGrid % resolution;
+        }
+
+        static void ValidateLength(long length, string kind)
+        {
+            if (length is < 0 or > int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"MA2 {kind} length {length} is outside the non-negative Int32 range.");
+            }
         }
 
         var noteStatMap = new Dictionary<string, int>();
@@ -121,6 +244,9 @@ public sealed class SimaiChartConverter
             ? mappedGroup
             : soflanGroup;
         var lastSoflanTotalGrid = 0L;
+        var slideSources = new List<Ma2SlideSource>();
+        var holdSources = new List<Ma2HoldSource>();
+        var nextSlideBranchId = 0;
 
         foreach (var timingPoint in allTimingPoints)
         {
@@ -129,14 +255,11 @@ public sealed class SimaiChartConverter
             lastSoflanTotalGrid = Math.Max(lastSoflanTotalGrid, currentTotalGrid);
             FormatGrid(currentTotalGrid, out var curUnit, out var curGrid);
 
-            var hasNotes = timingPoint.Notes.Length != 0;
-            if (hasNotes && Math.Abs(timingPoint.Bpm - currentBpm) > float.Epsilon)
+            if (timingPoint.Bpm > 0 && Math.Abs(timingPoint.Bpm - currentBpm) > float.Epsilon)
             {
                 compositeOutput.AppendLine($"BPM\t{curUnit}\t{curGrid}\t{FormatBpm(timingPoint.Bpm)}");
 
                 currentBpm = timingPoint.Bpm;
-                currentBpmBaseAudioTime = curTime;
-                currentBpmBaseGrid = currentTotalGrid;
             }
 
             var soflanGroup = timingPoint.SoflanGroup;
@@ -171,6 +294,7 @@ public sealed class SimaiChartConverter
                     {
                         var endTime = note.HoldTime + curTime;
                         var durationGrids = CalculateGrid(endTime) - currentTotalGrid;
+                        ValidateLength(durationGrids, "Hold");
                         notesOutput.Append($"\t{durationGrids}");
                     }
 
@@ -193,6 +317,17 @@ public sealed class SimaiChartConverter
                             break;
                     }
 
+                    if (note.Type is SimaiNoteType.Hold or SimaiNoteType.TouchHold)
+                    {
+                        holdSources.Add(new Ma2HoldSource
+                        {
+                            SourceIndex = holdSources.Count,
+                            SourceLine = timingPoint.RawTextPositionY + 1,
+                            SourceText = timingPoint.RawContent,
+                            OriginalDurationSeconds = note.HoldTime
+                        });
+                    }
+
                     AppendNoteTail(
                         notesOutput,
                         note.IsMine,
@@ -212,17 +347,20 @@ public sealed class SimaiChartConverter
                 }
 
                 var subSlides = InstantiateStarGroup(timingPoint, note);
-                var prevTotalGrid = currentTotalGrid;
-                var tmpSubListOutput = new List<(string SlideId, long Grid, long StartPos, long WaitGrid, long DurationGrid, long EndPos, bool IsForceYellow)>();
+                var segmentTimings = SlideSegmentTimingAnalysis.Analyze(timingPoint, note);
+                if (segmentTimings.Length != subSlides.Count)
+                {
+                    throw new InvalidOperationException(
+                        $"Slide 分段数量不一致：轨迹={subSlides.Count}，时长={segmentTimings.Length}。");
+                }
+
+                var branchId = nextSlideBranchId++;
+                AddStat(note.IsSlideBreak ? "BSL" : "SLD");
+                var slideOutput = new List<(string SlideId, long Grid, long StartPos, long WaitGrid, long DurationGrid, long EndPos, bool IsForceYellow)>();
 
                 for (var i = 0; i < subSlides.Count; i++)
                 {
                     var subSlide = subSlides[i];
-                    if (subSlides.Count == 1)
-                    {
-                        AddStat(subSlide.IsSlideBreak ? "BSL" : "SLD");
-                    }
-
                     var prefix = subSlide.IsSlideBreak ? "BR" : "NM";
                     if (i > 0)
                     {
@@ -254,37 +392,23 @@ public sealed class SimaiChartConverter
 
                     var isSelfReturningV = pattern == "v" && curPosition == endPosition;
                     var slideId = isSelfReturningV ? "SHL" : prefix + Ma2SlideMap[simaiId];
-                    var slideTotalGrid = CalculateGrid(subSlide.SlideStartTime);
-                    var waitGrid = slideTotalGrid - prevTotalGrid;
-                    var durationGrid = CalculateGrid(subSlide.SlideStartTime + subSlide.SlideTime) - slideTotalGrid;
+                    var segmentTiming = segmentTimings[i];
+                    var segmentStartGrid = CalculateGrid(segmentTiming.StartTime);
+                    var segmentEndGrid = CalculateGrid(segmentTiming.StartTime + segmentTiming.Duration);
+                    var grid = i == 0 ? currentTotalGrid : segmentStartGrid;
+                    var waitGrid = i == 0 ? segmentStartGrid - currentTotalGrid : 0;
+                    var durationGrid = segmentEndGrid - segmentStartGrid;
+                    ValidateLength(waitGrid, "Slide wait");
+                    ValidateLength(durationGrid, "Slide duration");
 
-                    if (subSlides.Count > 1)
-                    {
-                        waitGrid = prefix == "CN" ? 0 : waitGrid - durationGrid;
-                    }
-
-                    tmpSubListOutput.Add((slideId, prevTotalGrid, subSlide.StartPosition - 1, waitGrid, durationGrid,
+                    slideOutput.Add((slideId, grid, subSlide.StartPosition - 1, waitGrid, durationGrid,
                         endPosition - 1, subSlide.IsForceYellow));
-
-                    prevTotalGrid = slideTotalGrid;
                 }
 
-                var tmpFixedSubListOutput = new List<(string SlideId, long Grid, long StartPos, long WaitGrid, long DurationGrid, long EndPos, bool IsForceYellow)>();
-                for (var i = 1; i < tmpSubListOutput.Count; i++)
-                {
-                    var previous = tmpSubListOutput[i - 1];
-                    var current = tmpSubListOutput[i];
-                    var duration = current.Grid - (previous.Grid + previous.WaitGrid);
-                    tmpFixedSubListOutput.Add((previous.SlideId, previous.Grid, previous.StartPos, previous.WaitGrid,
-                        duration, previous.EndPos, previous.IsForceYellow));
-                }
-
-                tmpFixedSubListOutput.Add(tmpSubListOutput.Last());
-
-                for (var segmentIndex = 0; segmentIndex < tmpFixedSubListOutput.Count; segmentIndex++)
+                for (var segmentIndex = 0; segmentIndex < slideOutput.Count; segmentIndex++)
                 {
                     var (slideId, grid, startPos, waitGrid, durationGrid, endPos, isForceYellow) =
-                        tmpFixedSubListOutput[segmentIndex];
+                        slideOutput[segmentIndex];
                     FormatGrid(grid, out var slideUnit, out var slideGrid);
                     notesOutput.Append($"{slideId}\t{slideUnit}\t{slideGrid}\t{startPos}\t{waitGrid}\t{durationGrid}\t{endPos}");
                     AppendNoteTail(
@@ -294,6 +418,18 @@ public sealed class SimaiChartConverter
                         isForceYellow: isForceYellow,
                         isForceYellowMovingStar: segmentIndex == 0 && note.IsForceYellow);
                     notesOutput.AppendLine();
+                    slideSources.Add(new Ma2SlideSource
+                    {
+                        BranchId = branchId,
+                        SegmentIndex = segmentIndex,
+                        SourceLine = timingPoint.RawTextPositionY + 1,
+                        SourceText = timingPoint.RawContent,
+                        HasHead = !note.IsSlideNoHead,
+                        OriginalWaitSeconds = segmentIndex == 0
+                            ? Math.Max(0, note.SlideStartTime - timingPoint.Timing)
+                            : 0,
+                        OriginalDurationSeconds = segmentTimings[segmentIndex].Duration
+                    });
                     lastSoflanTotalGrid = Math.Max(lastSoflanTotalGrid, grid + waitGrid + durationGrid);
                 }
             }
@@ -317,6 +453,7 @@ public sealed class SimaiChartConverter
                 FormatGrid(totalGrid, out var unit, out var grid);
 
                 var duration = nextSpeedPoint.Key - curSpeedPoint.Key;
+                ValidateLength(duration, "Soflan");
 
                 compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{outputSoflanGroup}");
             }
@@ -328,6 +465,7 @@ public sealed class SimaiChartConverter
                 FormatGrid(totalGrid, out var unit, out var grid);
 
                 var duration = lastSoflanTotalGrid + 1 - lastSpeedPoint.Key;
+                ValidateLength(duration, "Soflan");
 
                 compositeOutput.AppendLine($"SFL\t{unit}\t{grid}\t{duration}\t{speed:F6}\t{outputSoflanGroup}");
             }
@@ -396,7 +534,8 @@ public sealed class SimaiChartConverter
         totalOutput.AppendLine($"TTM_SCR_SS\t{totalMaxScoreSs}");
         totalOutput.AppendLine($"TTM_RAT_ACV\t{maxFinaleAchievement}");
 
-        return headerOutput.ToString() + compositeOutput + notesOutput + totalOutput;
+        var content = headerOutput.ToString() + compositeOutput + notesOutput + totalOutput;
+        return new Ma2CandidateBuild(content, resolution, slideSources, holdSources);
     }
 
     public IReadOnlyList<Ma2ExportResult> ConvertSelectedCharts(
@@ -408,11 +547,77 @@ public sealed class SimaiChartConverter
         var results = new List<Ma2ExportResult>();
         foreach (var chart in charts)
         {
-            var content = ConvertChartToMa2Content(chart.ChartContent, fallbackWholeBpm, hSpeedInterpolationGrid);
-            results.Add(new Ma2ExportResult(chart.DiffId, $"music{musicId6}_{chart.DiffId}.ma2", content));
+            var conversion = ConvertChartToMa2(chart.ChartContent, fallbackWholeBpm, hSpeedInterpolationGrid);
+            results.Add(new Ma2ExportResult(
+                chart.DiffId,
+                $"music{musicId6}_{chart.DiffId}.ma2",
+                conversion.Content,
+                conversion.Report));
         }
 
         return results;
+    }
+
+    private static void ValidateOptions(Ma2AdaptiveResolutionOptions options)
+    {
+        if (options.MinimumResolution < Ma2AdaptiveResolutionOptions.DefaultResolution)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options),
+                $"Minimum MA2 resolution cannot be lower than {Ma2AdaptiveResolutionOptions.DefaultResolution}.");
+        }
+
+        if (options.MaximumResolution > Ma2AdaptiveResolutionOptions.DefaultMaximumResolution)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options),
+                $"Maximum MA2 resolution cannot exceed {Ma2AdaptiveResolutionOptions.DefaultMaximumResolution}.");
+        }
+
+        if (options.MinimumResolution > options.MaximumResolution)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Minimum MA2 resolution exceeds the maximum.");
+        }
+    }
+
+    private static int CalculateLegalResolutionStep(IEnumerable<SimaiTimingPoint> commaTimings)
+    {
+        long result = Ma2AdaptiveResolutionOptions.DefaultResolution;
+        foreach (var denominator in commaTimings
+                     .Select(x => x.SignatureDenominator)
+                     .Where(x => x > 0)
+                     .Distinct())
+        {
+            result = LeastCommonMultiple(result, denominator);
+            if (result > Ma2AdaptiveResolutionOptions.DefaultMaximumResolution)
+            {
+                throw new InvalidOperationException(
+                    $"拍号分母 {denominator} 使合法分辨率步长超过 " +
+                    $"{Ma2AdaptiveResolutionOptions.DefaultMaximumResolution}。");
+            }
+        }
+
+        return checked((int)result);
+    }
+
+    private static long LeastCommonMultiple(long left, long right)
+    {
+        static long GreatestCommonDivisor(long a, long b)
+        {
+            while (b != 0)
+            {
+                (a, b) = (b, a % b);
+            }
+
+            return Math.Abs(a);
+        }
+
+        return checked(left / GreatestCommonDivisor(left, right) * right);
+    }
+
+    private static int RoundUpToMultiple(int value, int step)
+    {
+        return checked((int)(((long)value + step - 1) / step * step));
     }
 
     private static string PrepareChartContent(string chartContent, float? fallbackWholeBpm)
@@ -1091,5 +1296,70 @@ public sealed class SimaiChartConverter
         public double SlideStartTime { get; set; }
         public double SlideTime { get; set; }
         public string RawContent { get; set; } = string.Empty;
+    }
+
+    private sealed class SimaiGridTimeline
+    {
+        private readonly int _resolution;
+        private readonly Segment[] _segments;
+
+        public SimaiGridTimeline(
+            IEnumerable<SimaiTimingPoint> timingPoints,
+            int resolution,
+            float initialBpm)
+        {
+            _resolution = resolution;
+            var segments = new List<Segment> { new(0, 0, initialBpm) };
+            var currentTime = 0d;
+            var currentGrid = 0L;
+            var currentBpm = initialBpm;
+
+            foreach (var timingPoint in timingPoints.OrderBy(x => x.Timing))
+            {
+                if (timingPoint.Bpm <= 0 ||
+                    Math.Abs(timingPoint.Bpm - currentBpm) <= float.Epsilon)
+                {
+                    continue;
+                }
+
+                currentGrid = checked(currentGrid + Quantize(timingPoint.Timing - currentTime, currentBpm));
+                currentTime = timingPoint.Timing;
+                currentBpm = timingPoint.Bpm;
+                if (segments[^1].Time == currentTime)
+                {
+                    segments[^1] = new Segment(currentTime, currentGrid, currentBpm);
+                }
+                else
+                {
+                    segments.Add(new Segment(currentTime, currentGrid, currentBpm));
+                }
+            }
+
+            _segments = segments.ToArray();
+        }
+
+        public long CalculateGrid(double time)
+        {
+            var segment = _segments[0];
+            for (var i = _segments.Length - 1; i >= 0; i--)
+            {
+                if (_segments[i].Time <= time)
+                {
+                    segment = _segments[i];
+                    break;
+                }
+            }
+
+            return checked(segment.Grid + Quantize(time - segment.Time, segment.Bpm));
+        }
+
+        private long Quantize(double seconds, float bpm)
+        {
+            return checked((long)Math.Round(
+                seconds * _resolution * bpm / 240d,
+                MidpointRounding.ToEven));
+        }
+
+        private readonly record struct Segment(double Time, long Grid, float Bpm);
     }
 }

@@ -1,3 +1,5 @@
+using MajdataEdit.Ma2Export;
+
 namespace MajdataEdit.MusicXmlExport;
 
 internal sealed class MusicXmlDifficultyExport
@@ -47,11 +49,16 @@ internal sealed class MusicXmlExportRequest
 
 internal sealed class MusicXmlExportResult
 {
-    public MusicXmlExportResult(string targetDirectory, string musicXmlPath, IReadOnlyList<string> ma2Paths)
+    public MusicXmlExportResult(
+        string targetDirectory,
+        string musicXmlPath,
+        IReadOnlyList<string> ma2Paths,
+        IReadOnlyList<Ma2ConversionReport> conversionReports)
     {
         TargetDirectory = targetDirectory;
         MusicXmlPath = musicXmlPath;
         Ma2Paths = ma2Paths;
+        ConversionReports = conversionReports;
     }
 
     public string TargetDirectory { get; }
@@ -59,4 +66,6 @@ internal sealed class MusicXmlExportResult
     public string MusicXmlPath { get; }
 
     public IReadOnlyList<string> Ma2Paths { get; }
+
+    public IReadOnlyList<Ma2ConversionReport> ConversionReports { get; }
 }

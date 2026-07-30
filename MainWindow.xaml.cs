@@ -392,6 +392,22 @@ public partial class MainWindow : Window
             return;
         }
 
+        var adaptiveSummary = BuildMa2AdaptiveSummary(exportResults);
+        if (!string.IsNullOrEmpty(adaptiveSummary))
+        {
+            var proceed = MessageBox.Show(
+                "以下谱面使用了自适应分辨率或自动时序修复：\n\n" +
+                adaptiveSummary +
+                "\n\n调整只作用于导出的 MA2，不会修改原始 Simai。是否继续写出？",
+                "生成 .ma2谱面文件",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (proceed != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
+
         if (exportResults.Count == 1)
         {
             SaveSingleMa2File(exportResults[0]);
@@ -487,8 +503,27 @@ public partial class MainWindow : Window
             return;
         }
 
-        MessageBox.Show("生成完成：\n" + saveFileDialog.FileName, "生成 .ma2谱面文件", MessageBoxButton.OK,
+        var reportSummary = BuildMa2AdaptiveSummary(new[] { result });
+        var reportText = string.IsNullOrEmpty(reportSummary) ? string.Empty : "\n\n" + reportSummary;
+        MessageBox.Show("生成完成：\n" + saveFileDialog.FileName + reportText, "生成 .ma2谱面文件", MessageBoxButton.OK,
             MessageBoxImage.Information);
+    }
+
+    private static string BuildMa2AdaptiveSummary(IEnumerable<Ma2ExportResult> results)
+    {
+        return string.Join(
+            "\n",
+            results
+                .Where(x => x.Report is not null &&
+                            (x.Report.FinalResolution != Ma2AdaptiveResolutionOptions.DefaultResolution ||
+                             x.Report.UsedMinimumGridRepair))
+                .Select(x =>
+                {
+                    var report = x.Report!;
+                    return $"{x.FileName}: R={report.FinalResolution}，候选 {report.CandidateAttempts} 个，" +
+                           $"调整 {report.AdjustedObjectCount} 个物件，最大 {report.MaximumGridAdjustment} Grid / " +
+                           $"{report.MaximumMillisecondAdjustment:F6} ms";
+                }));
     }
 
     private void MirrorLeftRight_MenuItem_Click(object? sender, RoutedEventArgs e)
