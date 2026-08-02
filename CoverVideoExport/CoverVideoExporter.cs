@@ -11,6 +11,7 @@ internal static class CoverVideoExporter
     private const int VideoFrameRate = 60;
     private const int MaximumVideoWidth = 1920;
     private const int MaximumVideoHeight = 1080;
+    private const int CoverVideoSize = 1080;
 
     public static string? FindSourcePath(string chartDirectory)
     {
@@ -94,7 +95,9 @@ internal static class CoverVideoExporter
             }
             else
             {
-                (width, height) = ReadEvenImageDimensions(sourceMediaPath);
+                _ = ReadEvenImageDimensions(sourceMediaPath);
+                width = CoverVideoSize;
+                height = CoverVideoSize;
                 frameRate = 1;
 
                 progress?.Report("正在编码 1 秒静态封面……");
@@ -209,7 +212,7 @@ internal static class CoverVideoExporter
                 "-i", sourceImagePath,
                 "-frames:v", "1",
                 "-an",
-                "-vf", $"scale={width}:{height}:flags=lanczos,setsar=1",
+                "-vf", $"scale={width}:{height}:force_original_aspect_ratio=increase:flags=lanczos,crop={width}:{height},setsar=1",
                 "-c:v", "libx264",
                 "-preset", "medium",
                 "-tune", "stillimage",
