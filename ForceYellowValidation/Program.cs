@@ -10,6 +10,7 @@ var tests = new (string Name, Func<Task> Body)[]
 {
     ("SyntaxCheck accepts Force Yellow", SyntaxCheckAcceptsForceYellow),
     ("SyntaxCheck rejects invalid Force Yellow", SyntaxCheckRejectsInvalidForceYellow),
+    ("SyntaxCheck reports MDV001 errors", SyntaxCheckReportsMajdataViewCompatibilityError),
     ("timeline segment analysis preserves Force Yellow scope", TimelineSegmentAnalysis),
     ("MA2 exports Force Yellow note tails", Ma2ExportsForceYellow),
     ("MA2 exports per-segment Force Yellow tails", Ma2ExportsForceYellowSegments),
@@ -109,6 +110,25 @@ static async Task SyntaxCheckRejectsInvalidForceYellow()
         await SyntaxChecker.ScanAsync($"(120){{4}}{note},E");
         Expect(SyntaxChecker.GetErrorCount() != 0, $"SyntaxCheck accepted {note}");
     }
+}
+
+static async Task SyntaxCheckReportsMajdataViewCompatibilityError()
+{
+    await SyntaxChecker.ScanAsync("(120){4}<HS7*-1>,\n<HS7>(1-3[8:1]),E");
+    var errors = SyntaxChecker.ErrorList
+        .Where(info => info.Level == InfomationLevel.Error &&
+                       info.eMessage.Contains("[MDV001]", StringComparison.Ordinal))
+        .ToArray();
+
+    Expect(SyntaxChecker.GetErrorCount() == 1,
+        $"expected MDV001 to count as one syntax error, found {SyntaxChecker.GetErrorCount()}");
+    Expect(errors.Length == 1, $"expected one MDV001 error, found {errors.Length}");
+    Expect(errors[0].positionY == 2 && errors[0].positionX > 0,
+        $"MDV001 source position was {errors[0].positionY}L,{errors[0].positionX}C");
+
+    await SyntaxChecker.ScanAsync("(120){4}<HS7*-1>,<HS7*1>,<HS7>(1-3[8:1]),E");
+    Expect(!SyntaxChecker.ErrorList.Any(info => info.eMessage.Contains("[MDV001]", StringComparison.Ordinal)),
+        "SyntaxCheck retained MDV001 after the group restored a positive speed");
 }
 
 static Task TimelineSegmentAnalysis()

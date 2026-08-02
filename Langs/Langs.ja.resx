@@ -319,6 +319,9 @@ If you wanna an excellent map, you can set the accuracy to
     <value>[SyntaxError] "{0}"({1}L,{2}C) fail to analyze，may be a syntax error here.</value>
     <comment>Translation required. {0} is the simai-language text which has Syntax Error. {1} and {2} is Line and Column index(which may not needed to be translate)</comment>
   </data>
+  <data name="MajdataViewSlideActivationError" xml:space="preserve">
+    <value>[MDV001][エラー] Slide "{0}"（{1}L,{2}C）は Soflan グループ {3} の終端 HSpeed {4} より後にあり、MajdataView で表示または判定されない可能性があります。この Slide より前でグループを有限の正速度に戻すか、星ヘッドをグループ外へ移してください。</value>
+  </data>
   <data name="WhatsThis" xml:space="preserve">
     <value>なにこれ</value>
     <comment>Maybe not the most accurate translation</comment>

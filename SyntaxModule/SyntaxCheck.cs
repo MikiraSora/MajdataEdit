@@ -65,7 +65,7 @@ namespace MajdataEdit.SyntaxModule
                 ErrorList.Clear();
                 int line = 1;
                 int column = 1;
-                if (!HSpeedSemanticSyntaxCheck(str) ||
+                if (!HSpeedSemanticSyntaxCheck(str, out var parsedChart) ||
                     !TryRemoveHSpeedMarkupForSyntaxCheck(str, out str))
                 {
                     addError("HS/SV", -1, -1);
@@ -115,6 +115,9 @@ namespace MajdataEdit.SyntaxModule
                     }
                     column++;
                 }
+
+                if (parsedChart is not null)
+                    AddMajdataViewCompatibilityDiagnostics(parsedChart);
             });
         }
         /// <summary>
@@ -137,8 +140,9 @@ namespace MajdataEdit.SyntaxModule
         /// <summary>
         /// 检查BPM与拍号的合法性
         /// </summary>
-        static bool HSpeedSemanticSyntaxCheck(string simaiStr)
+        static bool HSpeedSemanticSyntaxCheck(string simaiStr, out SimaiChart? chart)
         {
+            chart = null;
             var hasSpeedTag = false;
             for (var i = 0; i < simaiStr.Length; i++)
             {
@@ -154,7 +158,7 @@ namespace MajdataEdit.SyntaxModule
 
             try
             {
-                _ = SimaiParser.ParseChart(simaiStr.AsSpan(), 0, out _);
+                chart = SimaiParser.ParseChart(simaiStr.AsSpan(), 0, out _);
                 return true;
             }
             catch (InvalidSimaiMarkupException)
@@ -166,6 +170,32 @@ namespace MajdataEdit.SyntaxModule
                 // Syntax checking must report an incomplete chart instead of
                 // letting parser implementation errors escape the background task.
                 return false;
+            }
+        }
+
+        static void AddMajdataViewCompatibilityDiagnostics(SimaiChart chart)
+        {
+            var diagnostics = SimaiChartChecker.CheckMajdataViewCompatibility(chart);
+            foreach (var diagnostic in diagnostics)
+            {
+                var level = diagnostic.Severity == SimaiChartDiagnosticSeverity.Error
+                    ? InfomationLevel.Error
+                    : InfomationLevel.Warning;
+                var message = diagnostic.RuleId == MajdataViewSlideActivationRule.RuleId
+                    ? string.Format(
+                        MainWindow.GetLocalizedString("MajdataViewSlideActivationError"),
+                        diagnostic.RawContent,
+                        diagnostic.Line,
+                        diagnostic.Column,
+                        diagnostic.SoflanGroup,
+                        diagnostic.HSpeed.ToString("R", CultureInfo.InvariantCulture))
+                    : $"[{diagnostic.RuleId}] {diagnostic.Message}";
+
+                ErrorList.Add(new SimaiErrorInfo(
+                    diagnostic.Column,
+                    diagnostic.Line,
+                    message,
+                    level));
             }
         }
 

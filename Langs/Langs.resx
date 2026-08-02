@@ -342,4 +342,7 @@
   <data name="MajdataNetCreateTemporaryDirectoryFailed" xml:space="preserve">
     <value>Could not create the temporary chart folder:</value>
   </data>
+  <data name="MajdataViewSlideActivationError" xml:space="preserve">
+    <value>[MDV001][Error] Slide "{0}" ({1}L,{2}C) follows terminal HSpeed {4} in Soflan group {3}. MajdataView may fail to display or judge it. Restore the group to a finite positive speed before this Slide, or move its star head out of the group.</value>
+  </data>
 </root>

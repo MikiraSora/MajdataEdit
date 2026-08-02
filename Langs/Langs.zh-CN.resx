@@ -302,6 +302,9 @@
   <data name="SyntaxError" xml:space="preserve">
     <value>[语法错误] "{0}"({1}L,{2}C)解析失败，可能存在语法错误</value>
   </data>
+  <data name="MajdataViewSlideActivationError" xml:space="preserve">
+    <value>[MDV001][错误] Slide "{0}"（{1}L,{2}C）位于 Soflan 分组 {3} 的终止速度 {4} 之后，MajdataView 可能无法显示或判定它。请在此 Slide 前将该分组恢复为有限正速度，或将星头移出该分组。</value>
+  </data>
   <data name="WhatsThis" xml:space="preserve">
     <value>这是什么</value>
   </data>
