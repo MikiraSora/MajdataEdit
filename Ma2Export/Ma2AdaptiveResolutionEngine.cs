@@ -88,6 +88,36 @@ internal sealed class Ma2AdaptiveResolutionEngine
         "SV_", "SXL", "SXR", "SLL", "SLR", "SF_"
     };
 
+    public static Ma2CandidateBuild OrderNotesByTime(Ma2CandidateBuild candidate)
+    {
+        var parsed = ParsedMa2.Parse(candidate);
+        var notes = parsed.Slides.Select(x => (x.LineIndex, x.Grid))
+            .Concat(parsed.Holds.Select(x => (x.LineIndex, x.Grid)))
+            .Concat(parsed.Stars.Select(x => (x.LineIndex, x.Grid)))
+            .Concat(parsed.OtherTimedNotes.Select(x => (x.LineIndex, x.Grid)))
+            .OrderBy(x => x.LineIndex)
+            .ToArray();
+        // The reader stops EACH searches at the first later note. Preserve the
+        // original order at equal times so heads still precede their Slide roots.
+        var orderedNotes = notes.OrderBy(x => x.Grid).ToArray();
+        var lines = (string[])parsed.Lines.Clone();
+        for (var i = 0; i < notes.Length; i++)
+        {
+            lines[notes[i].LineIndex] = parsed.Lines[orderedNotes[i].LineIndex];
+        }
+
+        // Validation associates source metadata with records in file order.
+        var slideSources = parsed.Slides.ToDictionary(x => x.LineIndex, x => x.Source);
+        var holdSources = parsed.Holds.ToDictionary(x => x.LineIndex, x => x.Source);
+        return new Ma2CandidateBuild(
+            string.Join(Environment.NewLine, lines),
+            candidate.Resolution,
+            orderedNotes.Where(x => slideSources.ContainsKey(x.LineIndex))
+                .Select(x => slideSources[x.LineIndex]).ToArray(),
+            orderedNotes.Where(x => holdSources.ContainsKey(x.LineIndex))
+                .Select(x => holdSources[x.LineIndex]).ToArray());
+    }
+
     public Ma2CandidateValidation Validate(Ma2CandidateBuild candidate)
     {
         var parsed = ParsedMa2.Parse(candidate);

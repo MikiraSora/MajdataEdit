@@ -128,11 +128,11 @@ public sealed class SimaiChartConverter
         }
 
         var repaired = engine.Repair(lastCandidate);
-        var repairedCandidate = new Ma2CandidateBuild(
+        var repairedCandidate = Ma2AdaptiveResolutionEngine.OrderNotesByTime(new Ma2CandidateBuild(
             repaired.Content,
             lastCandidate.Resolution,
             lastCandidate.SlideSources,
-            lastCandidate.HoldSources);
+            lastCandidate.HoldSources));
         var repairedValidation = engine.Validate(repairedCandidate);
         if (!repairedValidation.IsValid)
         {
@@ -140,7 +140,7 @@ public sealed class SimaiChartConverter
         }
 
         return new Ma2ConversionResult(
-            repaired.Content,
+            repairedCandidate.Content,
             new Ma2ConversionReport(
                 Ma2AdaptiveResolutionOptions.DefaultResolution,
                 lastCandidate.Resolution,
@@ -535,7 +535,8 @@ public sealed class SimaiChartConverter
         totalOutput.AppendLine($"TTM_RAT_ACV\t{maxFinaleAchievement}");
 
         var content = headerOutput.ToString() + compositeOutput + notesOutput + totalOutput;
-        return new Ma2CandidateBuild(content, resolution, slideSources, holdSources);
+        return Ma2AdaptiveResolutionEngine.OrderNotesByTime(
+            new Ma2CandidateBuild(content, resolution, slideSources, holdSources));
     }
 
     public IReadOnlyList<Ma2ExportResult> ConvertSelectedCharts(

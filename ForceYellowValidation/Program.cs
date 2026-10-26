@@ -30,7 +30,9 @@ var tests = new (string Name, Func<Task> Body)[]
     ("MA2 blocks an unsafe explicit-zero self-returning Slide", Ma2BlocksZeroSelfReturningSlide),
     ("MA2 adaptive export reports exact root-contact repair", Ma2AdaptiveRepairsExactRootContact),
     ("MA2 adaptive export shifts a Head group when shortening is impossible", Ma2AdaptiveShiftsHeadGroup),
-    ("MA2 multi-segment Slide totals count branches", Ma2MultiSegmentSlideTotals)
+    ("MA2 multi-segment Slide totals count branches", Ma2MultiSegmentSlideTotals),
+    ("MA2 chained Slides preserve simultaneous EACH stars", Ma2ChainedSlidesPreserveEach),
+    ("MA2 repaired notes remain ordered", Ma2RepairedNotesRemainOrdered)
 };
 
 var failures = 0;
@@ -449,6 +451,47 @@ static Task Ma2MultiSegmentSlideTotals()
     Expect(lines.Contains("T_REC_SLD\t1"), "multi-segment Slide branch was omitted from T_REC_SLD");
     Expect(lines.Contains("T_NUM_SLD\t1"), "multi-segment Slide branch was omitted from T_NUM_SLD");
     return Task.CompletedTask;
+}
+
+static Task Ma2ChainedSlidesPreserveEach()
+{
+    var result = new SimaiChartConverter().ConvertChartToMa2(
+        "(205){1},,1-3-5-2[8:22]/7-4-8[8:22],,,,{8}7h[4:4],,E6,,E5,,E4,,E");
+    var notes = OrderedNoteFields(result.Content);
+    Expect(notes.Take(4).Select(x => x[0]).SequenceEqual(new[] { "NMSTR", "NMSI_", "NMSTR", "NMSI_" }),
+        "simultaneous stars and roots were separated by later connected Slides");
+    Expect(notes.Take(4).All(x => x[1] == "2" && x[2] == "0"), "opening EACH group moved");
+    Expect(notes.Count(x => x[0] == "CNSI_") == 3, "connected segments were lost");
+    Expect(!result.Content.Contains("!y", StringComparison.Ordinal), "natural EACH was forced yellow");
+    return Task.CompletedTask;
+}
+
+static Task Ma2RepairedNotesRemainOrdered()
+{
+    foreach (var chart in new[]
+    {
+        "(120){384}1!-3[0##0.005208333333333333],4/3!-5[0##0.5],",
+        "(120){4}1-3[0.000001##0.000001]/7-5[0.000001##0.000001],E"
+    })
+    {
+        var result = new SimaiChartConverter().ConvertChartToMa2(chart,
+            options: new Ma2AdaptiveResolutionOptions { MaximumResolution = 384 });
+        Expect(result.Report.UsedMinimumGridRepair, "test chart did not exercise minimum-grid repair");
+        OrderedNoteFields(result.Content);
+    }
+    return Task.CompletedTask;
+}
+
+static string[][] OrderedNoteFields(string content)
+{
+    var notes = GetLines(content).Select(x => x.Split('\t'))
+        .Where(x => x.Length >= 4 && (x[0] == "SHL" ||
+            new[] { "NM", "CN", "BR", "BX", "EX" }.Any(prefix => x[0].StartsWith(prefix, StringComparison.Ordinal))))
+        .ToArray();
+    var times = notes.Select(x => (Bar: long.Parse(x[1], CultureInfo.InvariantCulture),
+        Grid: long.Parse(x[2], CultureInfo.InvariantCulture))).ToArray();
+    Expect(times.SequenceEqual(times.OrderBy(x => x.Bar).ThenBy(x => x.Grid)), "MA2 notes are not ordered by time");
+    return notes;
 }
 
 static string ReadMaidataChart(string path, int difficulty)
